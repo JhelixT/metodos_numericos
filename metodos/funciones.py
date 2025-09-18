@@ -5,16 +5,32 @@ import matplotlib as plt
 import os
 
 def limpiar_terminal():
-    """Función para limpiar la terminal de manera multiplataforma"""
+    """
+    Limpia la pantalla de la terminal de manera compatible con múltiples sistemas operativos.
+    Utiliza el comando 'clear' en sistemas Unix/Linux/Mac y 'cls' en Windows.
+    """
     os.system('clear' if os.name == 'posix' else 'cls')
 
 def resolverJG(A, B):
+    """
+    Resuelve un sistema de ecuaciones lineales utilizando métodos iterativos (Jacobi o Gauss-Seidel).
+    
+    Args:
+        A (list[list[float]]): Matriz de coeficientes del sistema
+        B (list[float]): Vector de términos independientes
+    
+    Returns:
+        list[float]: Vector solución del sistema
 
+    Note:
+        La función verifica si la matriz es diagonalmente dominante antes de proceder.
+        Permite elegir entre el método de Jacobi o Gauss-Seidel.
+    """
     esDiagDom(A)
 
     n = len(A)
-    Xn = [0] * n
-    Xv = [0] * n
+    Xn = [0] * n  # Vector de soluciones nuevas
+    Xv = [0] * n  # Vector de soluciones viejas
 
     print("1-Resolver con Jacobi")
     print("2-Resolver con Gauss-Seidel")
@@ -27,6 +43,21 @@ def resolverJG(A, B):
     return Xn
     
 def esDiagDom(A):
+    """
+    Verifica si una matriz es diagonalmente dominante.
+    Una matriz es diagonalmente dominante si el valor absoluto de cada elemento diagonal
+    es mayor que la suma de los valores absolutos de los demás elementos en su fila.
+
+    Args:
+        A (list[list[float]]): Matriz cuadrada a verificar
+
+    Returns:
+        None: Imprime un mensaje si la matriz no es diagonalmente dominante
+    
+    Note:
+        Esta propiedad es importante para garantizar la convergencia de métodos iterativos
+        como Jacobi y Gauss-Seidel.
+    """
     n = len(A)
     suma = 0
     for j in range(1, n):
@@ -44,6 +75,22 @@ def esDiagDom(A):
             return
         
 def jacobi(A, B, Xn, Xv):
+    """
+    Implementa el método iterativo de Jacobi para resolver sistemas de ecuaciones lineales.
+    El método de Jacobi actualiza cada componente de la solución usando los valores de la iteración anterior.
+
+    Args:
+        A (list[list[float]]): Matriz de coeficientes
+        B (list[float]): Vector de términos independientes
+        Xn (list[float]): Vector para almacenar la solución nueva
+        Xv (list[float]): Vector para almacenar la solución anterior
+
+    Note:
+        - Requiere que la matriz sea diagonalmente dominante para garantizar convergencia
+        - En cada iteración, calcula x_i = (b_i - Σ(a_ij * x_j)) / a_ii
+        - Se detiene cuando el error es menor que la tolerancia especificada
+        - El error se calcula como la norma euclidiana de la diferencia entre iteraciones
+    """
     n = len(A)
     count = 0
     errorV = 1000
@@ -74,7 +121,27 @@ def jacobi(A, B, Xn, Xv):
     print(f"Con un error de {error}")
     print(f"Se resolvio en {count} iteraciones")
 
-def gauss_seidel(A,B, Xn, Xv, omega=1):
+def gauss_seidel(A, B, Xn, Xv, omega=1):
+    """
+    Implementa el método iterativo de Gauss-Seidel con factor de relajación (SOR) para resolver sistemas de ecuaciones lineales.
+    A diferencia de Jacobi, utiliza los valores actualizados tan pronto como estén disponibles.
+
+    Args:
+        A (list[list[float]]): Matriz de coeficientes
+        B (list[float]): Vector de términos independientes
+        Xn (list[float]): Vector para almacenar la solución nueva
+        Xv (list[float]): Vector para almacenar la solución anterior
+        omega (float, optional): Factor de relajación. Defaults to 1.
+            - omega < 1: sub-relajación
+            - omega = 1: método de Gauss-Seidel estándar
+            - omega > 1: sobre-relajación
+
+    Note:
+        - Generalmente converge más rápido que Jacobi
+        - Usa valores actualizados inmediatamente: x_i = (b_i - Σ(a_ij * x_j)) / a_ii
+        - El factor de relajación puede acelerar la convergencia
+        - El error se calcula como la norma euclidiana de la diferencia entre iteraciones
+    """
     n = len(A)
     count = 0
     errorV = 1000
@@ -113,6 +180,30 @@ def gauss_seidel(A,B, Xn, Xv, omega=1):
 
 
 def buscar_raiz(f, a, b, tipo_error, tolerancia, metodo=None):
+    """
+    Encuentra una raíz de una función en un intervalo dado usando el método de Bisección o Regula Falsi.
+
+    Args:
+        f (callable): Función continua de la cual se busca la raíz
+        a (float): Límite inferior del intervalo
+        b (float): Límite superior del intervalo
+        tipo_error (int): Tipo de error a utilizar
+            1: Error absoluto
+            2: Error porcentual
+        tolerancia (float): Tolerancia deseada para el error
+        metodo (int, optional): Método a utilizar
+            1: Bisección - divide el intervalo por la mitad
+            2: Regula Falsi - usa interpolación lineal
+            None: Permite al usuario elegir el método
+
+    Returns:
+        tuple[float, list[float]]: Tupla con la raíz encontrada y lista de errores en cada iteración
+
+    Note:
+        - Requiere que f(a) y f(b) tengan signos opuestos (teorema del valor intermedio)
+        - Bisección: convergencia garantizada pero lenta
+        - Regula Falsi: convergencia más rápida pero puede ser lenta en algunos casos
+    """
     if f(a)*f(b) > 0:
         print("No hay raiz dentro de este intervalo")
         return None, None
@@ -152,6 +243,27 @@ def buscar_raiz(f, a, b, tipo_error, tolerancia, metodo=None):
     return c, errores
 
 def raiz_punto_fijo(g, g_prime, a, tolerancia, tipo_error):
+    """
+    Implementa el método del punto fijo para encontrar raíces de una ecuación.
+    El método consiste en reescribir f(x) = 0 como x = g(x) y encontrar el punto fijo de g.
+
+    Args:
+        g (callable): Función g(x) en la forma x = g(x)
+        g_prime (callable): Derivada de g(x)
+        a (float): Valor inicial para comenzar la iteración
+        tolerancia (float): Tolerancia deseada para el error
+        tipo_error (int): Tipo de error a utilizar
+            1: Error absoluto
+            2: Error porcentual
+
+    Returns:
+        float: Punto fijo encontrado (raíz de la ecuación original)
+
+    Note:
+        - Requiere que |g'(x)| < 1 en el intervalo de interés para garantizar convergencia
+        - La velocidad de convergencia depende de qué tan cercano a 0 es |g'(x)|
+        - Es crucial elegir una buena función g(x) para garantizar convergencia
+    """
     contador=0
     tolerancia= tolerancia/100 if tipo_error==2 else tolerancia
     while True:
@@ -172,6 +284,29 @@ def raiz_punto_fijo(g, g_prime, a, tolerancia, tipo_error):
     return c
 
 def newton_raphson(f, f_prime, x0, tolerancia, tipo_error):
+    """
+    Implementa el método de Newton-Raphson para encontrar raíces de una función.
+    El método utiliza la derivada de la función para encontrar mejores aproximaciones
+    mediante la fórmula: x_{n+1} = x_n - f(x_n)/f'(x_n)
+
+    Args:
+        f (callable): Función de la cual se busca la raíz
+        f_prime (callable): Derivada de la función f
+        x0 (float): Aproximación inicial
+        tolerancia (float): Tolerancia deseada para el error
+        tipo_error (int): Tipo de error a utilizar
+            1: Error absoluto
+            2: Error porcentual
+
+    Returns:
+        float: Raíz encontrada
+
+    Note:
+        - Convergencia cuadrática cuando la aproximación está cerca de la raíz
+        - Requiere que f'(x) ≠ 0 cerca de la raíz
+        - Puede diverger si la aproximación inicial no es adecuada
+        - Se detiene si la derivada es muy cercana a cero (punto crítico)
+    """
     contador = 0
     tolerancia= tolerancia/100 if tipo_error==2 else tolerancia
     while contador<=10000:
@@ -195,6 +330,19 @@ def newton_raphson(f, f_prime, x0, tolerancia, tipo_error):
 
 
 def triangulacion(A, B):
+    """
+    Realiza la triangulación superior de una matriz aumentada [A|B] usando eliminación gaussiana con pivoteo.
+    
+    Args:
+        A (list[list[float]]): Matriz de coeficientes
+        B (list[float]): Vector de términos independientes
+
+    Note:
+        - Modifica las matrices A y B in-place
+        - Implementa pivoteo parcial para mejorar la estabilidad numérica
+        - El pivoteo selecciona el elemento más grande en valor absoluto de cada columna
+        - Evita problemas con elementos diagonales cercanos a cero
+    """
     n = len(A)
     for i in range(n-1):
         p=i
@@ -218,7 +366,19 @@ def triangulacion(A, B):
     pp.pprint(A)
     print()
 
-def determinante (A):
+def determinante(A):
+    """
+    Calcula el determinante de una matriz triangular superior.
+    Para una matriz triangular, el determinante es el producto de los elementos diagonales.
+
+    Args:
+        A (list[list[float]]): Matriz triangular superior
+
+    Note:
+        - Asume que la matriz ya está en forma triangular superior
+        - Un determinante cero indica que el sistema no tiene solución única
+        - Se usa después de la triangulación en el método de Gauss
+    """
     n = len(A)
     prod = 1
     for i in range(n):
@@ -229,6 +389,22 @@ def determinante (A):
     print("Determinante = ",prod,"\n")
 
 def gauss_pivot(A, B):
+    """
+    Resuelve un sistema de ecuaciones lineales usando eliminación gaussiana con pivoteo.
+    El método consiste en tres pasos: triangulación, verificación de determinante y sustitución hacia atrás.
+
+    Args:
+        A (list[list[float]]): Matriz de coeficientes
+        B (list[float]): Vector de términos independientes
+
+    Returns:
+        list[float]: Vector solución del sistema
+
+    Note:
+        - Implementa pivoteo parcial para mejorar la estabilidad numérica
+        - Verifica si el sistema tiene solución única (determinante ≠ 0)
+        - La sustitución hacia atrás resuelve el sistema triangular superior
+    """
     n = len(A)
     X = [0] * n
     triangulacion(A, B)
@@ -250,6 +426,19 @@ def gauss_pivot(A, B):
 
 
 def leer_puntos_xy(nombre_archivo):
+    """
+    Lee puntos (x,y) desde un archivo de texto.
+    El archivo debe contener dos columnas de números separados por coma o espacio.
+
+    Args:
+        nombre_archivo (str): Ruta al archivo que contiene los puntos
+
+    Returns:
+        tuple[list[float], list[float]]: Listas de coordenadas x e y
+
+    Raises:
+        ValueError: Si una línea del archivo no contiene exactamente dos valores
+    """
     xs, ys = [], []
     with open(nombre_archivo, 'r') as archivo:
         for linea in archivo:
@@ -265,6 +454,26 @@ def leer_puntos_xy(nombre_archivo):
     return xs, ys
 
 def interpolacion(nombre_archivo):
+    """
+    Realiza interpolación polinómica usando el método de Vandermonde.
+    Construye un polinomio que pasa exactamente por todos los puntos dados.
+
+    Args:
+        nombre_archivo (str): Archivo con los puntos a interpolar
+
+    Returns:
+        tuple:
+            - callable: Función del polinomio interpolador
+            - list[float]: Coeficientes del polinomio
+            - list[float]: Coordenadas x de los puntos
+            - list[float]: Coordenadas y de los puntos
+
+    Note:
+        - Usa la matriz de Vandermonde: A[i][j] = x_i^j
+        - Resuelve el sistema usando eliminación gaussiana
+        - El grado del polinomio es n-1, donde n es el número de puntos
+        - Puede ser numéricamente inestable para muchos puntos
+    """
     X, Y = leer_puntos_xy(nombre_archivo)
 
     n = len(X)
@@ -286,6 +495,22 @@ def interpolacion(nombre_archivo):
     return p, coef, X, Y
 
 def graficar_interpolacion(p, coef, X, Y, funcion_real=None):
+    """
+    Visualiza el resultado de la interpolación polinómica.
+
+    Args:
+        p (callable): Función del polinomio interpolador
+        coef (list[float]): Coeficientes del polinomio
+        X (list[float]): Coordenadas x de los puntos originales
+        Y (list[float]): Coordenadas y de los puntos originales
+        funcion_real (callable, optional): Función original si se conoce
+
+    Note:
+        - Muestra los puntos originales en rojo
+        - Grafica el polinomio interpolador en azul
+        - Si se proporciona, muestra la función original en verde punteado
+        - Imprime los coeficientes del polinomio ordenados por potencia
+    """
     x_vals = np.linspace(min(X), max(X), 500)
     y_vals = [p(x) for x in x_vals]
 
