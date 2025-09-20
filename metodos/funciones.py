@@ -453,6 +453,59 @@ def leer_puntos_xy(nombre_archivo):
             xs.append(x)
             ys.append(y)
     return xs, ys
+def _validar_datos_xy(X=None, Y=None, nombre_archivo=None):
+    """
+    Función auxiliar para validar y preparar datos de entrada X,Y.
+    
+    Args:
+        X (list[float], optional): Lista de coordenadas x
+        Y (list[float], optional): Lista de coordenadas y
+        nombre_archivo (str, optional): Ruta al archivo de datos
+        
+    Returns:
+        tuple[list[float], list[float]]: Datos X,Y validados y convertidos a float
+        
+    Raises:
+        ValueError: Si los datos de entrada no son válidos
+    """
+    if nombre_archivo is not None:
+        X, Y = leer_puntos_xy(nombre_archivo)
+    elif X is not None and Y is not None:
+        if len(X) != len(Y):
+            raise ValueError("Las listas X e Y deben tener la misma longitud")
+        X = list(map(float, X))  # Asegurar que los valores son float
+        Y = list(map(float, Y))
+    else:
+        raise ValueError("Debe proporcionar arrays X e Y, o un nombre de archivo")
+    return X, Y
+
+def interpolacion_lagrange(input_x, X=None, Y=None, nombre_archivo=None):
+    """
+    Calcula el valor interpolado para un punto dado usando el método de Lagrange.
+    
+    Args:
+        input_x (float): Punto donde se desea interpolar
+        X (list[float], optional): Lista de coordenadas x
+        Y (list[float], optional): Lista de coordenadas y
+        nombre_archivo (str, optional): Ruta al archivo de datos
+        
+    Returns:
+        float: Valor interpolado en input_x
+        
+    Raises:
+        ValueError: Si los datos de entrada no son válidos
+    """
+    X, Y = _validar_datos_xy(X, Y, nombre_archivo)
+    n = len(X)
+
+    suma = 0
+    for i in range(n):
+        prod = 1
+        for j in range(n):
+            if i != j:
+                prod = prod * (input_x - X[j])/(X[i]-X[j])
+        suma = suma + Y[i]*prod
+    return suma
 
 def interpolacion(X=None, Y=None, nombre_archivo=None):
     """
@@ -490,15 +543,7 @@ def interpolacion(X=None, Y=None, nombre_archivo=None):
         # Usando un archivo
         p, coef, X, Y = interpolacion(nombre_archivo='datos.txt')
     """
-    if nombre_archivo is not None:
-        X, Y = leer_puntos_xy(nombre_archivo)
-    elif X is not None and Y is not None:
-        if len(X) != len(Y):
-            raise ValueError("Las listas X e Y deben tener la misma longitud")
-        X = list(map(float, X))  # Asegurar que los valores son float
-        Y = list(map(float, Y))
-    else:
-        raise ValueError("Debe proporcionar arrays X e Y, o un nombre de archivo")
+    X, Y = _validar_datos_xy(X, Y, nombre_archivo)
 
     n = len(X)
 
@@ -554,6 +599,96 @@ def graficar_interpolacion(p, coef, X, Y, funcion_real=None):
     print("Coeficientes del polinomio (ordenados por potencia):")
     for i, c in enumerate(coef):
         print(f"x^{i}: {c}")
+
+def regresion_polinomica(grado=1, X=None, Y=None, nombre_archivo=None):
+    """
+    Realiza una regresión polinómica de grado especificado sobre los datos.
+    
+    Args:
+        grado (int, optional): Grado del polinomio de regresión. Por defecto 1 (regresión lineal)
+        X (list[float], optional): Lista de coordenadas x
+        Y (list[float], optional): Lista de coordenadas y
+        nombre_archivo (str, optional): Ruta al archivo de datos
+        
+    Returns:
+        tuple:
+            - callable: Función del polinomio de regresión
+            - list[float]: Coeficientes del polinomio
+            - list[float]: Coordenadas x de los puntos
+            - list[float]: Coordenadas y de los puntos
+            - float: Coeficiente de correlación (r)
+            
+    Raises:
+        ValueError: Si los datos son insuficientes para el grado especificado
+    """
+    X, Y = _validar_datos_xy(X, Y, nombre_archivo)
+    n = len(X)
+    
+    if n <= grado:
+        raise ValueError(f"Se necesitan al menos {grado + 1} puntos para una regresión de grado {grado}")
+    
+    # Crear y llenar matrices del sistema
+    A = [[0 for j in range(grado + 1)] for i in range(grado + 1)]
+    B = [0 for j in range(grado + 1)]
+
+    for l in range(grado + 1):
+        sumaxy = sum(y * x**l for x, y in zip(X, Y))
+        B[l] = sumaxy
+        for m in range(grado + 1):
+            sumax = sum(x**(l+m) for x in X)
+            A[l][m] = sumax
+
+    coef = gauss_pivot(A, B)
+
+    # Función polinómica evaluable
+    def p(x):
+        return sum(c * (x**i) for i, c in enumerate(coef))
+
+    # Calcular coeficiente de correlación
+    Y_prom = sum(Y) / n
+    Sr = sum((p(x) - y)**2 for x, y in zip(X, Y))  # Suma de residuos cuadrados
+    St = sum((y - Y_prom)**2 for y in Y)  # Suma total de cuadrados
+    
+    r = math.sqrt((St - Sr)/St) if St > 0 else 0
+
+    return p, coef, X, Y, r
+
+def graficar_regresion(p, coef, X, Y, r):
+    """
+    Visualiza el resultado de la regresión polinómica junto con los puntos originales
+    y muestra el coeficiente de correlación.
+
+    Args:
+        p (callable): Función del polinomio de regresión
+        coef (list[float]): Coeficientes del polinomio
+        X (list[float]): Coordenadas x de los puntos originales
+        Y (list[float]): Coordenadas y de los puntos originales
+        r (float): Coeficiente de correlación del ajuste
+
+    Note:
+        - Muestra los puntos originales como puntos rojos
+        - Grafica la función de regresión como una línea azul continua
+        - Muestra el coeficiente de correlación en la leyenda
+        - Imprime los coeficientes del polinomio ordenados por potencia
+    """
+    x_vals = np.linspace(min(X), max(X), 500)
+    y_vals = [p(x) for x in x_vals]
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(X, Y, color="red", label="Puntos datos")
+    plt.plot(x_vals, y_vals, label=f"Regresión (r = {r:.4f})", color="blue")
+
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.title("Regresión Polinómica")
+    
+    print("\nCoeficientes del polinomio (ordenados por potencia):")
+    for i, c in enumerate(coef):
+        print(f"x^{i}: {c}")
+
+    plt.show()
 
 def graficar_funciones(*funciones, nombres=None, x_min=-10, x_max=10, n_puntos=1000):
     """
