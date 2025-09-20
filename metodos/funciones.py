@@ -1,7 +1,8 @@
 import math
 import pprint as pp
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 import os
 
 def limpiar_terminal():
@@ -530,3 +531,110 @@ def graficar_interpolacion(p, coef, X, Y, funcion_real=None):
     print("Coeficientes del polinomio (ordenados por potencia):")
     for i, c in enumerate(coef):
         print(f"x^{i}: {c}")
+
+def graficar_funciones(*funciones, nombres=None, x_min=-10, x_max=10, n_puntos=1000):
+    """
+    Crea un gráfico interactivo y zoomeable de una o más funciones matemáticas.
+
+    Args:
+        *funciones (callable): Una o más funciones matemáticas para graficar
+        nombres (list[str], optional): Lista con los nombres de las funciones para la leyenda.
+            Si no se proporciona, se usarán nombres genéricos (f1, f2, etc.)
+        x_min (float, optional): Límite inferior del dominio. Por defecto -10
+        x_max (float, optional): Límite superior del dominio. Por defecto 10
+        n_puntos (int, optional): Número de puntos para el gráfico. Por defecto 1000
+
+    Example:
+        # Graficar una función
+        graficar_funciones(lambda x: x**2)
+
+        # Graficar múltiples funciones con nombres personalizados
+        graficar_funciones(
+            lambda x: x**2,
+            lambda x: math.sin(x),
+            nombres=['Parábola', 'Seno']
+        )
+    
+    Note:
+        - Use las teclas + y - para hacer zoom
+        - Use las flechas del teclado para moverse por el gráfico
+        - Use el botón de reset para volver a la vista inicial
+        - Los colores se asignan automáticamente para cada función
+    """
+    # Validar entradas
+    if not funciones:
+        raise ValueError("Debe proporcionar al menos una función")
+    
+    if nombres is None:
+        nombres = [f'f{i+1}' for i in range(len(funciones))]
+    elif len(nombres) != len(funciones):
+        raise ValueError("La cantidad de nombres debe coincidir con la cantidad de funciones")
+
+    # Crear la figura y los ejes
+    fig, ax = plt.subplots(figsize=(10, 6))
+    plt.subplots_adjust(bottom=0.2)  # Hacer espacio para el botón
+
+    # Generar los datos
+    x = np.linspace(x_min, x_max, n_puntos)
+    
+    # Graficar cada función
+    lines = []
+    for f, nombre in zip(funciones, nombres):
+        try:
+            y = [f(xi) for xi in x]
+            line, = ax.plot(x, y, label=nombre)
+            lines.append(line)
+        except Exception as e:
+            print(f"Error al graficar {nombre}: {e}")
+
+    # Configurar el gráfico
+    ax.grid(True, alpha=0.3)
+    ax.axhline(y=0, color='k', linestyle='-', alpha=0.3)
+    ax.axvline(x=0, color='k', linestyle='-', alpha=0.3)
+    ax.legend()
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    
+    # Guardar los límites originales para el botón de reset
+    original_xlim = ax.get_xlim()
+    original_ylim = ax.get_ylim()
+
+    # Agregar botón de reset
+    reset_ax = plt.axes([0.8, 0.05, 0.1, 0.075])
+    reset_button = Button(reset_ax, 'Reset')
+
+    def reset(event):
+        ax.set_xlim(original_xlim)
+        ax.set_ylim(original_ylim)
+        plt.draw()
+
+    reset_button.on_clicked(reset)
+
+    # Configurar el zoom con el teclado
+    def on_key(event):
+        if event.key == '=':  # Zoom in
+            ax.set_xlim(ax.get_xlim()[0] * 0.9, ax.get_xlim()[1] * 0.9)
+            ax.set_ylim(ax.get_ylim()[0] * 0.9, ax.get_ylim()[1] * 0.9)
+        elif event.key == '-':  # Zoom out
+            ax.set_xlim(ax.get_xlim()[0] * 1.1, ax.get_xlim()[1] * 1.1)
+            ax.set_ylim(ax.get_ylim()[0] * 1.1, ax.get_ylim()[1] * 1.1)
+        elif event.key == 'left':
+            xlim = ax.get_xlim()
+            delta = (xlim[1] - xlim[0]) * 0.1
+            ax.set_xlim(xlim[0] - delta, xlim[1] - delta)
+        elif event.key == 'right':
+            xlim = ax.get_xlim()
+            delta = (xlim[1] - xlim[0]) * 0.1
+            ax.set_xlim(xlim[0] + delta, xlim[1] + delta)
+        elif event.key == 'up':
+            ylim = ax.get_ylim()
+            delta = (ylim[1] - ylim[0]) * 0.1
+            ax.set_ylim(ylim[0] + delta, ylim[1] + delta)
+        elif event.key == 'down':
+            ylim = ax.get_ylim()
+            delta = (ylim[1] - ylim[0]) * 0.1
+            ax.set_ylim(ylim[0] - delta, ylim[1] - delta)
+        plt.draw()
+
+    fig.canvas.mpl_connect('key_press_event', on_key)
+    plt.show()
