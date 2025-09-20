@@ -454,13 +454,16 @@ def leer_puntos_xy(nombre_archivo):
             ys.append(y)
     return xs, ys
 
-def interpolacion(nombre_archivo):
+def interpolacion(X=None, Y=None, nombre_archivo=None):
     """
     Realiza interpolación polinómica usando el método de Vandermonde.
     Construye un polinomio que pasa exactamente por todos los puntos dados.
 
     Args:
-        nombre_archivo (str): Archivo con los puntos a interpolar
+        X (list[float], optional): Lista de coordenadas x de los puntos.
+        Y (list[float], optional): Lista de coordenadas y de los puntos.
+        nombre_archivo (str, optional): Archivo con los puntos a interpolar.
+            Si se proporciona, los puntos se leerán del archivo ignorando X e Y.
 
     Returns:
         tuple:
@@ -469,13 +472,33 @@ def interpolacion(nombre_archivo):
             - list[float]: Coordenadas x de los puntos
             - list[float]: Coordenadas y de los puntos
 
+    Raises:
+        ValueError: Si no se proporcionan ni puntos ni archivo, o si X e Y tienen diferente longitud
+
     Note:
         - Usa la matriz de Vandermonde: A[i][j] = x_i^j
         - Resuelve el sistema usando eliminación gaussiana
         - El grado del polinomio es n-1, donde n es el número de puntos
         - Puede ser numéricamente inestable para muchos puntos
+
+    Example:
+        # Usando arrays directamente
+        X = [1, 2, 3]
+        Y = [1, 4, 9]
+        p, coef, X, Y = interpolacion(X=X, Y=Y)
+
+        # Usando un archivo
+        p, coef, X, Y = interpolacion(nombre_archivo='datos.txt')
     """
-    X, Y = leer_puntos_xy(nombre_archivo)
+    if nombre_archivo is not None:
+        X, Y = leer_puntos_xy(nombre_archivo)
+    elif X is not None and Y is not None:
+        if len(X) != len(Y):
+            raise ValueError("Las listas X e Y deben tener la misma longitud")
+        X = list(map(float, X))  # Asegurar que los valores son float
+        Y = list(map(float, Y))
+    else:
+        raise ValueError("Debe proporcionar arrays X e Y, o un nombre de archivo")
 
     n = len(X)
 
