@@ -6,8 +6,10 @@ from metodos import funciones as f
 def main():
     # Usar ruta relativa que funcione en cualquier sistema operativo
     archivo = os.path.join(os.path.dirname(__file__), "inputs", "datos1.txt")
-    p, coef, X, Y = f.interpolacion(archivo)
+    p, coef, X, Y = f.interpolacion(nombre_archivo=archivo)
 
     f.graficar_interpolacion(p, coef, X, Y, funcion_real=lambda x: x + 2/x)
 
+    aproximacion = f.interpolacion_lagrange(input=1.5, nombre_archivo=archivo)
+    print(aproximacion)
 main()

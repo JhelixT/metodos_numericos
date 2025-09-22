@@ -557,6 +557,8 @@ def interpolacion(X=None, Y=None, nombre_archivo=None):
 
     coef = gauss_pivot(A, B)  # coef[0] = x^0, coef[1] = x^1, ...
 
+    limpiar_terminal()
+
     # función polinómica evaluable
     def p(x):
         return sum(c * (x**i) for i, c in enumerate(coef))
@@ -589,16 +591,19 @@ def graficar_interpolacion(p, coef, X, Y, funcion_real=None):
     if funcion_real is not None:
         y_real = [funcion_real(x) for x in x_vals]
         plt.plot(x_vals, y_real, label="Función real (posible origen)", linestyle="--", color="green")
+    
+    print("Coeficientes del polinomio (ordenados por potencia):")
+    for i, c in enumerate(coef):
+        print(f"x^{i}: {c}")
 
     plt.legend()
     plt.xlabel("x")
     plt.ylabel("y")
     plt.title("Interpolación polinómica")
+    plt.grid(True)
     plt.show()
 
-    print("Coeficientes del polinomio (ordenados por potencia):")
-    for i, c in enumerate(coef):
-        print(f"x^{i}: {c}")
+
 
 def regresion_polinomica(grado=1, X=None, Y=None, nombre_archivo=None):
     """
@@ -639,6 +644,8 @@ def regresion_polinomica(grado=1, X=None, Y=None, nombre_archivo=None):
             A[l][m] = sumax
 
     coef = gauss_pivot(A, B)
+    
+    limpiar_terminal()
 
     # Función polinómica evaluable
     def p(x):
@@ -646,8 +653,8 @@ def regresion_polinomica(grado=1, X=None, Y=None, nombre_archivo=None):
 
     # Calcular coeficiente de correlación
     Y_prom = sum(Y) / n
-    Sr = sum((p(x) - y)**2 for x, y in zip(X, Y))  # Suma de residuos cuadrados
-    St = sum((y - Y_prom)**2 for y in Y)  # Suma total de cuadrados
+    Sr = sum((p(x) - y)**2 for x, y in zip(X, Y))  # Error Funcional
+    St = sum((y - Y_prom)**2 for y in Y)  # Error estadistico
     
     r = math.sqrt((St - Sr)/St) if St > 0 else 0
 
