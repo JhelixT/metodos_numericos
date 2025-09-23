@@ -565,7 +565,7 @@ def interpolacion(X=None, Y=None, nombre_archivo=None):
 
     return p, coef, X, Y
 
-def graficar_interpolacion(p, coef, X, Y, funcion_real=None):
+def graficar_interpolacion(p, coef, X, Y, funcion_real=None, a=None, b=None):
     """
     Visualiza el resultado de la interpolación polinómica.
 
@@ -582,7 +582,12 @@ def graficar_interpolacion(p, coef, X, Y, funcion_real=None):
         - Si se proporciona, muestra la función original en verde punteado
         - Imprime los coeficientes del polinomio ordenados por potencia
     """
-    x_vals = np.linspace(min(X), max(X), 500)
+    if a is None:
+        a = min(X)
+    if b is None:
+        b = max(X)
+
+    x_vals = np.linspace(a, b, 500)
     y_vals = [p(x) for x in x_vals]
 
     plt.scatter(X, Y, color="red", label="Puntos datos")
@@ -605,7 +610,7 @@ def graficar_interpolacion(p, coef, X, Y, funcion_real=None):
 
 
 
-def regresion_polinomica(grado=1, X=None, Y=None, nombre_archivo=None):
+def regresion_polinomica (X=None, Y=None, nombre_archivo=None, grado=1):
     """
     Realiza una regresión polinómica de grado especificado sobre los datos.
     

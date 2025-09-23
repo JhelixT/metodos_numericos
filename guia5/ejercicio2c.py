@@ -11,7 +11,7 @@ def main():
     generar_datos(valores_x, archivo, separador=" ")
     p, coef, X, Y = f.interpolacion(nombre_archivo=archivo)
     f.graficar_interpolacion(p, coef, X, Y, funcion_real=lambda x: x**x)
-    comparar_error(p, max(X), max(X)+3)
+    comparar_error(p, min(X), max(X))
 
 
 def generar_datos(xs, filename, separador=","):
