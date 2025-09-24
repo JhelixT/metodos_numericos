@@ -364,7 +364,7 @@ def triangulacion(A, B):
 
             B[j] = B[i]*factor + B[j]
 
-    pp.pprint(A)
+    #pp.pprint(A)
     print()
 
 def determinante(A):
@@ -479,6 +479,43 @@ def _validar_datos_xy(X=None, Y=None, nombre_archivo=None):
         raise ValueError("Debe proporcionar arrays X e Y, o un nombre de archivo")
     return X, Y
 
+def _ordenar_puntos_xy(X, Y):
+    """
+    Ordena los puntos (X,Y) según los valores de X de forma ascendente.
+    
+    Args:
+        X (list[float]): Coordenadas x
+        Y (list[float]): Coordenadas y
+        
+    Returns:
+        tuple[list[float], list[float]]: Puntos ordenados (X_ord, Y_ord)
+        
+    Raises:
+        ValueError: Si hay valores duplicados en X
+    """
+    n = len(X)
+    
+    # Crear lista de índices ordenados según X
+    indices_ordenados = sorted(range(n), key=lambda i: X[i])
+    
+    # Aplicar el ordenamiento
+    X_ordenado = [X[i] for i in indices_ordenados]
+    Y_ordenado = [Y[i] for i in indices_ordenados]
+    
+    # Verificar puntos duplicados
+    for i in range(n-1):
+        if abs(X_ordenado[i+1] - X_ordenado[i]) < 1e-12:
+            raise ValueError(f"Valores duplicados en X: X[{i}] = X[{i+1}] = {X_ordenado[i]}. "
+                           "Se requieren valores únicos para interpolación.")
+    
+    # Mostrar advertencia si se reordenó
+    if indices_ordenados != list(range(n)):
+        print("⚠️  ADVERTENCIA: Los puntos se reordenaron según X.")
+        print(f"   Original: X = {X}")
+        print(f"   Ordenado: X = {X_ordenado}")
+    
+    return X_ordenado, Y_ordenado
+
 def interpolacion_lagrange(input_x, X=None, Y=None, nombre_archivo=None):
     """
     Calcula el valor interpolado para un punto dado usando el método de Lagrange.
@@ -507,7 +544,7 @@ def interpolacion_lagrange(input_x, X=None, Y=None, nombre_archivo=None):
         suma = suma + Y[i]*prod
     return suma
 
-def interpolacion(X=None, Y=None, nombre_archivo=None):
+def interpolacion(X=None, Y=None, nombre_archivo=None, ordenar_automatico=True):
     """
     Realiza interpolación polinómica usando el método de Vandermonde.
     Construye un polinomio que pasa exactamente por todos los puntos dados.
@@ -544,6 +581,9 @@ def interpolacion(X=None, Y=None, nombre_archivo=None):
         p, coef, X, Y = interpolacion(nombre_archivo='datos.txt')
     """
     X, Y = _validar_datos_xy(X, Y, nombre_archivo)
+    
+    if ordenar_automatico:
+        X, Y = _ordenar_puntos_xy(X, Y)
 
     n = len(X)
 
@@ -808,3 +848,273 @@ def graficar_funciones(*funciones, nombres=None, x_min=-10, x_max=10, n_puntos=1
 
     fig.canvas.mpl_connect('key_press_event', on_key)
     plt.show()
+
+def curvas_spline(X=None, Y=None, nombre_archivo=None):
+    """
+    Construye splines cúbicos naturales para interpolar puntos dados.
+    
+    Para n puntos tenemos n-1 intervalos, cada uno con un polinomio cúbico:
+    S_k(x) = a_k*x³ + b_k*x² + c_k*x + d_k para x en [X_k, X_{k+1}]
+    
+    Args:
+        X (list[float], optional): Lista de coordenadas x
+        Y (list[float], optional): Lista de coordenadas y  
+        nombre_archivo (str, optional): Ruta al archivo de datos
+        
+    Returns:
+        tuple: (funciones_spline, coeficientes, X, Y)
+            - funciones_spline: lista de funciones para cada intervalo
+            - coeficientes: matriz de coeficientes [a_k, b_k, c_k, d_k] para cada k
+                donde S_k(x) = a_k*x³ + b_k*x² + c_k*x + d_k
+            - X, Y: puntos originales
+    """
+    X, Y = _validar_datos_xy(X, Y, nombre_archivo)
+    X, Y = _ordenar_puntos_xy(X, Y)  # Ordenar automáticamente
+    n = len(X)
+    
+    if n < 3:
+        raise ValueError("Se necesitan al menos 3 puntos para construir splines cúbicos")
+    
+    num_intervalos = n - 1
+    num_coef = 4 * num_intervalos
+    
+    A = [[0 for i in range(num_coef)] for j in range(num_coef)]
+    B = [0 for i in range(num_coef)]
+    
+    fila = 0  # Contador de filas para asegurar que no se sobreescriban
+    
+    # 1. Ecuaciones de evaluación: 2*(n-1) ecuaciones
+    # S_k(X_k) = Y_k y S_k(X_{k+1}) = Y_{k+1} para k = 0, 1, ..., n-2
+    for k in range(num_intervalos):
+        # S_k(X_k) = Y_k
+        for j in range(4):
+            A[fila][4*k + j] = X[k]**(3-j)  # a_k*X_k³ + b_k*X_k² + c_k*X_k + d_k
+        B[fila] = Y[k]
+        fila += 1
+        
+        # S_k(X_{k+1}) = Y_{k+1}
+        for j in range(4):
+            A[fila][4*k + j] = X[k+1]**(3-j)
+        B[fila] = Y[k+1]
+        fila += 1
+    
+    # 2. Ecuaciones de continuidad de primera derivada: (n-2) ecuaciones
+    # S'_k(X_{k+1}) = S'_{k+1}(X_{k+1}) para k = 0, 1, ..., n-3
+    for k in range(num_intervalos - 1):
+        # S'_k(x) = 3*a_k*x² + 2*b_k*x + c_k
+        # S'_{k+1}(x) = 3*a_{k+1}*x² + 2*b_{k+1}*x + c_{k+1}
+        x_punto = X[k+1]
+        
+        # Coeficientes de S'_k(X_{k+1})
+        A[fila][4*k] = 3*x_punto**2      # 3*a_k*x²
+        A[fila][4*k + 1] = 2*x_punto     # 2*b_k*x
+        A[fila][4*k + 2] = 1             # c_k
+        
+        # Coeficientes de -S'_{k+1}(X_{k+1})
+        A[fila][4*(k+1)] = -3*x_punto**2     # -3*a_{k+1}*x²
+        A[fila][4*(k+1) + 1] = -2*x_punto   # -2*b_{k+1}*x
+        A[fila][4*(k+1) + 2] = -1           # -c_{k+1}
+        
+        B[fila] = 0
+        fila += 1
+    
+    # 3. Ecuaciones de continuidad de segunda derivada: (n-2) ecuaciones
+    # S''_k(X_{k+1}) = S''_{k+1}(X_{k+1}) para k = 0, 1, ..., n-3
+    for k in range(num_intervalos - 1):
+        # S''_k(x) = 6*a_k*x + 2*b_k
+        # S''_{k+1}(x) = 6*a_{k+1}*x + 2*b_{k+1}
+        x_punto = X[k+1]
+        
+        # Coeficientes de S''_k(X_{k+1})
+        A[fila][4*k] = 6*x_punto      # 6*a_k*x
+        A[fila][4*k + 1] = 2          # 2*b_k
+        
+        # Coeficientes de -S''_{k+1}(X_{k+1})
+        A[fila][4*(k+1)] = -6*x_punto     # -6*a_{k+1}*x
+        A[fila][4*(k+1) + 1] = -2         # -2*b_{k+1}
+        
+        B[fila] = 0
+        fila += 1
+    
+    # 4. Condiciones de frontera naturales: 2 ecuaciones
+    # S''_0(X_0) = 0 y S''_{n-2}(X_{n-1}) = 0
+    
+    # S''_0(X_0) = 0: 6*a_0*X_0 + 2*b_0 = 0
+    A[fila][0] = 6*X[0]      # 6*a_0*X_0
+    A[fila][1] = 2           # 2*b_0
+    B[fila] = 0
+    fila += 1
+    
+    # S''_{n-2}(X_{n-1}) = 0: 6*a_{n-2}*X_{n-1} + 2*b_{n-2} = 0
+    last_interval = num_intervalos - 1
+    A[fila][4*last_interval] = 6*X[n-1]       # 6*a_{n-2}*X_{n-1}
+    A[fila][4*last_interval + 1] = 2          # 2*b_{n-2}
+    B[fila] = 0
+    fila += 1
+    
+    # Resolver el sistema
+    coeficientes_planos = gauss_pivot(A, B)
+    
+    # Reorganizar coeficientes por intervalo
+    coeficientes = []
+    for k in range(num_intervalos):
+        a_k = coeficientes_planos[4*k]      # coeficiente de x³
+        b_k = coeficientes_planos[4*k + 1]  # coeficiente de x²
+        c_k = coeficientes_planos[4*k + 2]  # coeficiente de x
+        d_k = coeficientes_planos[4*k + 3]  # término constante
+        coeficientes.append([a_k, b_k, c_k, d_k])
+    
+    # Crear funciones evaluables para cada intervalo
+    funciones_spline = []
+    for k in range(num_intervalos):
+        a_k, b_k, c_k, d_k = coeficientes[k]
+        def crear_spline(a, b, c, d):
+            return lambda x: a*x**3 + b*x**2 + c*x + d
+        funciones_spline.append(crear_spline(a_k, b_k, c_k, d_k))
+    
+    limpiar_terminal()
+    
+    return funciones_spline, coeficientes, X, Y
+
+def evaluar_spline(x, funciones_spline, X):
+    """
+    Evalúa el spline en un punto x, encontrando automáticamente el intervalo correcto.
+    
+    Args:
+        x (float): Punto donde evaluar el spline
+        funciones_spline (list[callable]): Lista de funciones spline por intervalo
+        X (list[float]): Puntos de interpolación (nodos)
+    
+    Returns:
+        float: Valor del spline en x
+        
+    Raises:
+        ValueError: Si x está fuera del dominio de los splines
+    """
+    # Verificar que x está en el dominio
+    if x < X[0] or x > X[-1]:
+        raise ValueError(f"El punto x={x} está fuera del dominio [{X[0]}, {X[-1]}]")
+    
+    # Buscar el intervalo correcto usando búsqueda lineal
+    for k in range(len(X) - 1):
+        if X[k] <= x <= X[k+1]:
+            return funciones_spline[k](x)
+    
+    # Si no se encuentra (caso edge), usar el último intervalo
+    return funciones_spline[-1](x)
+
+def buscar_intervalo(x, X):
+    """
+    Encuentra el índice del intervalo [X_k, X_{k+1}] que contiene el punto x.
+    
+    Args:
+        x (float): Punto a buscar
+        X (list[float]): Puntos ordenados (nodos del spline)
+    
+    Returns:
+        int: Índice k del intervalo [X_k, X_{k+1}] que contiene x
+        
+    Raises:
+        ValueError: Si x está fuera del dominio
+    """
+    if x < X[0] or x > X[-1]:
+        raise ValueError(f"El punto x={x} está fuera del dominio [{X[0]}, {X[-1]}]")
+    
+    # Método 1: Búsqueda lineal (O(n))
+    # Adecuado para pocos puntos o evaluaciones esporádicas
+    for k in range(len(X) - 1):
+        if X[k] <= x <= X[k+1]:
+            return k
+    
+    # Si x == X[-1] exactamente
+    return len(X) - 2
+
+def buscar_intervalo_binario(x, X):
+    """
+    Encuentra el intervalo usando búsqueda binaria (más eficiente para muchos puntos).
+    
+    Args:
+        x (float): Punto a buscar
+        X (list[float]): Puntos ordenados (nodos del spline)
+    
+    Returns:
+        int: Índice k del intervalo [X_k, X_{k+1}] que contiene x
+    """
+    if x < X[0] or x > X[-1]:
+        raise ValueError(f"El punto x={x} está fuera del dominio [{X[0]}, {X[-1]}]")
+    
+    # Búsqueda binaria (O(log n))
+    # Más eficiente para muchos puntos o evaluaciones frecuentes
+    izq, der = 0, len(X) - 2
+    
+    while izq <= der:
+        medio = (izq + der) // 2
+        
+        if X[medio] <= x <= X[medio + 1]:
+            return medio
+        elif x < X[medio]:
+            der = medio - 1
+        else:
+            izq = medio + 1
+    
+    # Fallback (no debería llegar aquí si x está en el dominio)
+    return len(X) - 2
+
+def graficar_splines(funciones_spline, coeficientes, X, Y, funcion_real=None):
+    """
+    Visualiza las curvas spline junto con los puntos originales.
+    
+    Args:
+        funciones_spline (list[callable]): Lista de funciones para cada intervalo
+        coeficientes (list[list[float]]): Coeficientes [a, b, c, d] para cada intervalo
+        X (list[float]): Coordenadas x de los puntos originales
+        Y (list[float]): Coordenadas y de los puntos originales
+        funcion_real (callable, optional): Función original si se conoce
+    """
+    plt.figure(figsize=(12, 8))
+    
+    # Graficar los puntos originales
+    plt.scatter(X, Y, color="red", s=50, label="Puntos datos", zorder=5)
+    
+    # Graficar cada spline en su intervalo correspondiente
+    colores = plt.cm.tab10(np.linspace(0, 1, len(funciones_spline)))
+    
+    for k in range(len(funciones_spline)):
+        x_intervalo = np.linspace(X[k], X[k+1], 100)
+        y_intervalo = [funciones_spline[k](x) for x in x_intervalo]
+        
+        plt.plot(x_intervalo, y_intervalo, 
+                color=colores[k], 
+                label=f'Spline {k+1}: [{X[k]:.2f}, {X[k+1]:.2f}]',
+                linewidth=2)
+    
+    # Si se proporciona la función real, mostrarla
+    if funcion_real is not None:
+        x_continuo = np.linspace(min(X), max(X), 500)
+        y_real = [funcion_real(x) for x in x_continuo]
+        plt.plot(x_continuo, y_real, 
+                label="Función real", 
+                linestyle="--", 
+                color="green", 
+                alpha=0.7,
+                linewidth=2)
+    
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.title("Interpolación con Splines Cúbicos Naturales")
+    
+    # Imprimir los coeficientes
+    print("\nCoeficientes de los splines cúbicos:")
+    print("S_k(x) = a_k*x³ + b_k*x² + c_k*x + d_k")
+    print("-" * 50)
+    for k, (a, b, c, d) in enumerate(coeficientes):
+        print(f"Intervalo {k+1} [{X[k]:.2f}, {X[k+1]:.2f}]:")
+        print(f"  S_{k+1}(x) = {a:.4f}*x³ + {b:.4f}*x² + {c:.4f}*x + {d:.4f}")
+    
+    plt.show() 
+
+
+
+
