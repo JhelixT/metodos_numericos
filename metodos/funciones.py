@@ -36,10 +36,11 @@ def resolverJG(A, B):
     print("1-Resolver con Jacobi")
     print("2-Resolver con Gauss-Seidel")
     opcion = int(input())
+    tipo_error = int(input("Tipo de error (1=absoluto, 2=porcentual): ") or "1")
     if opcion == 1:
-        jacobi(A, B, Xn, Xv)
+        jacobi(A, B, Xn, Xv, tipo_error)
     elif opcion == 2:
-        gauss_seidel(A,B, Xn, Xv)
+        gauss_seidel(A,B, Xn, Xv, tipo_error=tipo_error)
     
     return Xn
     
@@ -75,7 +76,7 @@ def esDiagDom(A):
             print("La matriz no es Diagonalmente Dominante")
             return
         
-def jacobi(A, B, Xn, Xv):
+def jacobi(A, B, Xn, Xv, tipo_error=1):
     """
     Implementa el método iterativo de Jacobi para resolver sistemas de ecuaciones lineales.
     El método de Jacobi actualiza cada componente de la solución usando los valores de la iteración anterior.
@@ -85,6 +86,7 @@ def jacobi(A, B, Xn, Xv):
         B (list[float]): Vector de términos independientes
         Xn (list[float]): Vector para almacenar la solución nueva
         Xv (list[float]): Vector para almacenar la solución anterior
+        tipo_error (int): 1=absoluto, 2=porcentual
 
     Note:
         - Requiere que la matriz sea diagonalmente dominante para garantizar convergencia
@@ -96,6 +98,7 @@ def jacobi(A, B, Xn, Xv):
     count = 0
     errorV = 1000
     tolerancia = float(input("Ingrese la tolerancia: "))
+    if tipo_error == 2: tolerancia = tolerancia/100
     while True:
         count+=1
         for i in range(n):
@@ -105,9 +108,12 @@ def jacobi(A, B, Xn, Xv):
                     suma = suma + A[i][j]*Xv[j]
             Xn[i] = (B[i] - suma)/A[i][i]
         error = 0
+        norma = 0
         for i in range(n):
             error = error + (Xn[i]-Xv[i])**2
-        error = math.sqrt(error) 
+            if tipo_error == 2: norma += Xn[i]**2
+        error = math.sqrt(error)
+        if tipo_error == 2 and norma > 0: error = error / math.sqrt(norma)
         if error > errorV:
             print("El metodo no converge")
             return
@@ -119,10 +125,10 @@ def jacobi(A, B, Xn, Xv):
     print("Las soluciones son:")
     for i in range(n):
         print(f"X{i} = {Xn[i]}")
-    print(f"Con un error de {error}")
+    print(f"Con un error de {error*100 if tipo_error==2 else error}{'%' if tipo_error==2 else ''}")
     print(f"Se resolvio en {count} iteraciones")
 
-def gauss_seidel(A, B, Xn, Xv, omega=1):
+def gauss_seidel(A, B, Xn, Xv, omega=1, tipo_error=1):
     """
     Implementa el método iterativo de Gauss-Seidel con factor de relajación (SOR) para resolver sistemas de ecuaciones lineales.
     A diferencia de Jacobi, utiliza los valores actualizados tan pronto como estén disponibles.
@@ -136,6 +142,7 @@ def gauss_seidel(A, B, Xn, Xv, omega=1):
             - omega < 1: sub-relajación
             - omega = 1: método de Gauss-Seidel estándar
             - omega > 1: sobre-relajación
+        tipo_error (int): 1=absoluto, 2=porcentual
 
     Note:
         - Generalmente converge más rápido que Jacobi
@@ -147,6 +154,7 @@ def gauss_seidel(A, B, Xn, Xv, omega=1):
     count = 0
     errorV = 1000
     tolerancia = float(input("Ingrese la tolerancia: "))
+    if tipo_error == 2: tolerancia = tolerancia/100
     while True:
         count+=1
         for i in range(n):
@@ -162,9 +170,12 @@ def gauss_seidel(A, B, Xn, Xv, omega=1):
             Xn[i] = omega*Xn[i] + (1-omega)*Xv[i] #Factor de Relajacion, por default omega = 1
 
         error = 0
+        norma = 0
         for i in range(n):
             error = error + (Xn[i]-Xv[i])**2
-        error = math.sqrt(error) 
+            if tipo_error == 2: norma += Xn[i]**2
+        error = math.sqrt(error)
+        if tipo_error == 2 and norma > 0: error = error / math.sqrt(norma)
         if error > errorV:
             print("El metodo no converge")
             return
@@ -176,7 +187,7 @@ def gauss_seidel(A, B, Xn, Xv, omega=1):
     print("Las soluciones son:")
     for i in range(n):
         print(f"X{i} = {Xn[i]}")
-    print(f"Con un error de {error}")
+    print(f"Con un error de {error*100 if tipo_error==2 else error}{'%' if tipo_error==2 else ''}")
     print(f"Se resolvio en {count} iteraciones")
 
 
@@ -269,7 +280,7 @@ def raiz_punto_fijo(g, g_prime, a, tolerancia, tipo_error):
     tolerancia= tolerancia/100 if tipo_error==2 else tolerancia
     while True:
         contador+=1
-        if abs(g_prime(g ,a))>=1:
+        if abs(g_prime(a))>=1:
             print("El metodo no converge")
             return None
         c=g(a)
@@ -328,6 +339,62 @@ def newton_raphson(f, f_prime, x0, tolerancia, tipo_error):
     print(f"Le tomo {contador} iteraciones")
     print(f"La raiz evaluada es {f(x1):.2e}")
     return x1
+
+def metodo_secante(f, x0, x1, tolerancia, tipo_error):
+    """
+    Implementa el método de la secante para encontrar raíces de una función.
+    El método utiliza dos puntos iniciales y aproxima la derivada usando la pendiente
+    entre los dos puntos más recientes: x_{n+1} = x_n - f(x_n) * (x_n - x_{n-1}) / (f(x_n) - f(x_{n-1}))
+
+    Args:
+        f (callable): Función de la cual se busca la raíz
+        x0 (float): Primera aproximación inicial
+        x1 (float): Segunda aproximación inicial
+        tolerancia (float): Tolerancia deseada para el error
+        tipo_error (int): Tipo de error a utilizar
+            1: Error absoluto
+            2: Error porcentual
+
+    Returns:
+        float: Raíz encontrada
+
+    Note:
+        - Convergencia superlineal (más rápida que bisección, más lenta que Newton-Raphson)
+        - No requiere calcular la derivada de la función
+        - Puede fallar si f(x_n) - f(x_{n-1}) se aproxima a cero
+        - Requiere dos aproximaciones iniciales
+    """
+    contador = 0
+    if tipo_error == 2: tolerancia = tolerancia/100
+    
+    while contador <= 10000:
+        contador += 1
+        
+        # Verificar si la diferencia de las imágenes es muy pequeña
+        if abs(f(x1) - f(x0)) < 1e-12:
+            print("Diferencia de funciones muy pequeña")
+            return None
+            
+        # Calcular la nueva aproximación usando la fórmula de la secante
+        x2 = x1 - f(x1) * (x1 - x0) / (f(x1) - f(x0))
+        
+        # Calcular error
+        error = abs(x2 - x1) if tipo_error == 1 else abs(x2 - x1) / abs(x2) if abs(x2) > 1e-12 else abs(x2 - x1)
+        
+        # Actualizar valores para siguiente iteración
+        x0, x1 = x1, x2
+        
+        if error < tolerancia:
+            break
+    
+    if tipo_error == 2:
+        print(f"La raiz es {x2} con un error de {error*100:.2e}%")
+    else:
+        print(f"La raiz es {x2} con un error de {error:.2e}")
+
+    print(f"Le tomo {contador} iteraciones")
+    print(f"La raiz evaluada es {f(x2):.2e}")
+    return x2
 
 
 def triangulacion(A, B):
@@ -766,9 +833,6 @@ def graficar_funciones(*funciones, nombres=None, x_min=-10, x_max=10, n_puntos=1
         )
     
     Note:
-        - Use las teclas + y - para hacer zoom
-        - Use las flechas del teclado para moverse por el gráfico
-        - Use el botón de reset para volver a la vista inicial
         - Los colores se asignan automáticamente para cada función
     """
     # Validar entradas
@@ -782,7 +846,6 @@ def graficar_funciones(*funciones, nombres=None, x_min=-10, x_max=10, n_puntos=1
 
     # Crear la figura y los ejes
     fig, ax = plt.subplots(figsize=(10, 6))
-    plt.subplots_adjust(bottom=0.2)  # Hacer espacio para el botón
 
     # Generar los datos
     x = np.linspace(x_min, x_max, n_puntos)
@@ -804,49 +867,6 @@ def graficar_funciones(*funciones, nombres=None, x_min=-10, x_max=10, n_puntos=1
     ax.legend()
     ax.set_xlabel('x')
     ax.set_ylabel('y')
-    
-    # Guardar los límites originales para el botón de reset
-    original_xlim = ax.get_xlim()
-    original_ylim = ax.get_ylim()
-
-    # Agregar botón de reset
-    reset_ax = plt.axes([0.8, 0.05, 0.1, 0.075])
-    reset_button = Button(reset_ax, 'Reset')
-
-    def reset(event):
-        ax.set_xlim(original_xlim)
-        ax.set_ylim(original_ylim)
-        plt.draw()
-
-    reset_button.on_clicked(reset)
-
-    # Configurar el zoom con el teclado
-    def on_key(event):
-        if event.key == '=':  # Zoom in
-            ax.set_xlim(ax.get_xlim()[0] * 0.9, ax.get_xlim()[1] * 0.9)
-            ax.set_ylim(ax.get_ylim()[0] * 0.9, ax.get_ylim()[1] * 0.9)
-        elif event.key == '-':  # Zoom out
-            ax.set_xlim(ax.get_xlim()[0] * 1.1, ax.get_xlim()[1] * 1.1)
-            ax.set_ylim(ax.get_ylim()[0] * 1.1, ax.get_ylim()[1] * 1.1)
-        elif event.key == 'left':
-            xlim = ax.get_xlim()
-            delta = (xlim[1] - xlim[0]) * 0.1
-            ax.set_xlim(xlim[0] - delta, xlim[1] - delta)
-        elif event.key == 'right':
-            xlim = ax.get_xlim()
-            delta = (xlim[1] - xlim[0]) * 0.1
-            ax.set_xlim(xlim[0] + delta, xlim[1] + delta)
-        elif event.key == 'up':
-            ylim = ax.get_ylim()
-            delta = (ylim[1] - ylim[0]) * 0.1
-            ax.set_ylim(ylim[0] + delta, ylim[1] + delta)
-        elif event.key == 'down':
-            ylim = ax.get_ylim()
-            delta = (ylim[1] - ylim[0]) * 0.1
-            ax.set_ylim(ylim[0] - delta, ylim[1] - delta)
-        plt.draw()
-
-    fig.canvas.mpl_connect('key_press_event', on_key)
     plt.show()
 
 def curvas_spline(X=None, Y=None, nombre_archivo=None):
