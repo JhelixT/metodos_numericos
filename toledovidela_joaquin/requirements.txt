@@ -1,0 +1,15 @@
+# Core Scientific Computing Libraries
+numpy>=1.24.3        # Fundamental package for numerical computations and array operations
+scipy>=1.10.1        # Scientific library for advanced numerical routines and algorithms
+
+# Plotting and Visualization
+matplotlib>=3.7.1    # Comprehensive library for creating static, animated, and interactive visualizations
+
+# Symbolic Mathematics and Computer Algebra
+sympy>=1.12         # Library for symbolic mathematics, calculus, and equation solving
+
+# Development Tools
+pytest>=7.4.0       # Testing framework for Python (recommended for unit testing)
+ipython>=8.14.0     # Enhanced interactive Python shell for development
+
+# Note: math, os, sys, and pprint are part of Python's standard library and don't need to be installed
