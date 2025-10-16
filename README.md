@@ -20,7 +20,8 @@ metodos_numericos/
 ├── guia3/              # Ejercicios: Sistemas de ecuaciones lineales
 ├── guia4/              # Ejercicios: Resolución de sistemas
 ├── guia5/              # Ejercicios: Interpolación y aproximación
-├── guia6/              # Ejercicios: Integración numérica
+├── guia6/              # Ejercicios: Interpolación segmentaria con curvas spline
+├── guia7/              # Ejercicios: Integración numérica
 └── metodos/            # 📚 Biblioteca principal (módulos especializados)
     ├── __init__.py           # Exportaciones y API pública
     ├── raices.py             # 🎯 Localización de raíces
@@ -251,7 +252,8 @@ Cada guía (`guia1/`, `guia2/`, etc.) contiene ejercicios específicos que imple
 - **Guía 3**: Sistemas de ecuaciones lineales
 - **Guía 4**: Métodos directos (eliminación gaussiana)
 - **Guía 5**: Interpolación y regresión
-- **Guía 6**: Integración numérica
+- **Guía 6**: Interpolación segmentaria (splines cúbicos)
+- **Guía 7**: Integración numérica
 
 ## 🔄 Compatibilidad y Migración
 
