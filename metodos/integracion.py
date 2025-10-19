@@ -30,7 +30,7 @@ def trapecio(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
         a (float, optional): Límite inferior de integración
         b (float, optional): Límite superior de integración
         n (int, optional): Número de subintervalos. Si no se especifica con datos 
-                          tabulados, se usa n = 100 * (len(X) - 1)
+                          tabulados, se usa n = len(X) - 1
         X (list[float], optional): Coordenadas x de datos tabulados
         Y (list[float], optional): Coordenadas y de datos tabulados
         verbose (bool, optional): Si True, imprime información adicional. Por defecto True.
@@ -85,7 +85,7 @@ def trapecio(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
             raise ValueError("Se necesitan al menos 2 puntos para integrar")
         
         if n is None:
-            n = 100 * (len(X) - 1)  # Valor por defecto si no se especifica
+            n = len(X) - 1  # Valor por defecto: número de intervalos originales
         
         X_original = [float(x) for x in X]
         Y_original = [float(y) for y in Y]
@@ -150,7 +150,8 @@ def simpson(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
         a (float, optional): Límite inferior de integración
         b (float, optional): Límite superior de integración
         n (int, optional): Número de subintervalos (debe ser PAR). Si no se especifica
-                          con datos tabulados, se usa n = 100 * (len(X) - 1) (ajustado a PAR)
+                          con datos tabulados, se usa n = len(X) si len(X) es par, 
+                          o n = len(X) - 1 si len(X) es impar
         X (list[float], optional): Coordenadas x de datos tabulados
         Y (list[float], optional): Coordenadas y de datos tabulados
         verbose (bool, optional): Si True, imprime información. Por defecto True.
@@ -208,7 +209,9 @@ def simpson(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
             raise ValueError("Se necesitan al menos 3 puntos para Simpson 1/3")
         
         if n is None:
-            n = 100 * (len(X) - 1)  # Valor por defecto si no se especifica
+            # Si la cantidad de puntos es par, usar len(X)
+            # Si es impar, usar len(X) - 1
+            n = len(X) if len(X) % 2 == 0 else len(X) - 1
         
         # Asegurar que n sea PAR
         if n % 2 != 0:
