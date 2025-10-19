@@ -34,7 +34,8 @@ from .aproximacion import (
 
 # Métodos de integración numérica
 from .integracion import (
-    trapecio
+    trapecio,
+    simpson
 )
 
 # Funciones utilitarias
@@ -73,6 +74,7 @@ __all__ = [
     'graficar_splines',
     # Integración
     'trapecio',
+    'simpson',
     # Utilidades
     'limpiar_terminal',
     'graficar_funciones',

@@ -19,15 +19,18 @@ def trapecio(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
        - Divide [a,b] en n subintervalos equiespaciados
        - Aplica la regla del trapecio en cada subintervalo
        
-    2. Datos tabulados: Requiere X, Y
-       - Si los datos están equiespaciados: aplica regla del trapecio directamente
-       - Si los datos NO están equiespaciados: construye splines cúbicos y aplica trapecio
+    2. Datos tabulados: Requiere X, Y (opcionalmente n)
+       - Construye splines cúbicos para aproximar los datos
+       - Equiespacía el dominio [X[0], X[-1]] con n intervalos
+       - Evalúa los splines en los puntos equiespaciados
+       - Aplica la regla del trapecio a los datos equiespaciados
     
     Args:
         f (callable, optional): Función a integrar
         a (float, optional): Límite inferior de integración
         b (float, optional): Límite superior de integración
-        n (int, optional): Número de subintervalos para función continua
+        n (int, optional): Número de subintervalos. Si no se especifica con datos 
+                          tabulados, se usa n = 100 * (len(X) - 1)
         X (list[float], optional): Coordenadas x de datos tabulados
         Y (list[float], optional): Coordenadas y de datos tabulados
         verbose (bool, optional): Si True, imprime información adicional. Por defecto True.
@@ -43,15 +46,15 @@ def trapecio(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
         >>> def f(x): return x**2
         >>> resultado = trapecio(f=f, a=0, b=3, n=100)
         
-        >>> # Modo 2: Datos tabulados equiespaciados
+        >>> # Modo 2: Datos tabulados (n por defecto)
         >>> X = [0, 1, 2, 3]
         >>> Y = [0, 1, 4, 9]
         >>> resultado = trapecio(X=X, Y=Y)
         
-        >>> # Modo 2: Datos tabulados NO equiespaciados (usa splines)
+        >>> # Modo 2: Datos tabulados (n especificado)
         >>> X = [0, 0.5, 2, 3]
         >>> Y = [0, 0.25, 4, 9]
-        >>> resultado = trapecio(X=X, Y=Y)
+        >>> resultado = trapecio(X=X, Y=Y, n=500)
     """
     
     # Modo 1: Función continua
@@ -81,63 +84,44 @@ def trapecio(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
         if len(X) < 2:
             raise ValueError("Se necesitan al menos 2 puntos para integrar")
         
-        X = [float(x) for x in X]
-        Y = [float(y) for y in Y]
+        if n is None:
+            n = 100 * (len(X) - 1)  # Valor por defecto si no se especifica
         
-        # Verificar si los datos están equiespaciados
-        diferencias = [X[i+1] - X[i] for i in range(len(X)-1)]
-        h = diferencias[0]
-        equiespaciado = all(abs(diff - h) < 1e-10 for diff in diferencias)
+        X_original = [float(x) for x in X]
+        Y_original = [float(y) for y in Y]
         
-        if equiespaciado:
-            # Caso simple: datos equiespaciados
-            if verbose:
-                print(f"Modo: Datos tabulados equiespaciados ({len(X)} puntos, h={h})")
-            
-            suma = (Y[0] + Y[-1]) / 2
-            for i in range(1, len(Y)-1):
-                suma += Y[i]
-            
-            integral = h * suma
-            
-            if verbose:
-                print(f"Resultado: ∫f(x)dx ≈ {integral}")
-            
-            return integral
+        if verbose:
+            print(f"Modo: Datos tabulados ({len(X_original)} puntos)")
+            print(f"Se construirán splines cúbicos y se equiespaciarán con n={n} intervalos...")
         
-        else:
-            # Caso complejo: datos NO equiespaciados → usar splines
-            if verbose:
-                print(f"Modo: Datos tabulados NO equiespaciados ({len(X)} puntos)")
-                print("Se construirán splines cúbicos para la integración...")
-            
-            funciones_spline, _, X_ordenado, _ = curvas_spline(X=X, Y=Y, verbose=False)
-            
-            num_subintervalos = len(X) - 1
-            
-            integral_total = 0.0
-            
-            for k in range(num_subintervalos):
-                a_k = X_ordenado[k]
-                b_k = X_ordenado[k+1]
-                
-                n_puntos = 100
-                h_spline = (b_k - a_k) / n_puntos
-                
-                suma = (evaluar_spline(a_k, funciones_spline, X_ordenado) + 
-                       evaluar_spline(b_k, funciones_spline, X_ordenado)) / 2
-                
-                for i in range(1, n_puntos):
-                    x_i = a_k + i * h_spline
-                    suma += evaluar_spline(x_i, funciones_spline, X_ordenado)
-                
-                integral_k = h_spline * suma
-                integral_total += integral_k
-            
-            if verbose:
-                print(f"Resultado: ∫f(x)dx ≈ {integral_total}")
-            
-            return integral_total
+        # Calcular funciones splines para aproximar los datos originales
+        funciones_spline, _, X_ordenado, _ = curvas_spline(X=X_original, Y=Y_original, verbose=False)
+        
+        # Definir extremos del intervalo
+        a = X_ordenado[0]   # X[0]: extremo inicial
+        b = X_ordenado[-1]  # X[-1]: extremo final
+        h = (b - a) / n
+        
+        if verbose:
+            print(f"Equiespaciando: [{a}, {b}] con n={n}, h={h:.6f}")
+        
+        # Crear nuevo arreglo X equiespaciado: X[i] = X[0] + i*h
+        X_eq = [a + i * h for i in range(n + 1)]
+        
+        # Crear arreglo Y evaluando splines: Y[i] = evaluar_spline(X[i], funciones_spline)
+        Y_eq = [evaluar_spline(X_eq[i], funciones_spline, X_ordenado) for i in range(n + 1)]
+        
+        # Aplicar método del trapecio con los arreglos equiespaciados
+        suma = (Y_eq[0] + Y_eq[-1]) / 2
+        for i in range(1, n):
+            suma += Y_eq[i]
+        
+        integral = h * suma
+        
+        if verbose:
+            print(f"Resultado: ∫f(x)dx ≈ {integral}")
+        
+        return integral
     
     else:
         raise ValueError(
@@ -145,3 +129,133 @@ def trapecio(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
             "  1. Función continua: f, a, b, n\n"
             "  2. Datos tabulados: X, Y"
         )
+def simpson(f=None, a=None, b=None, n=None, X=None, Y=None, verbose=True):
+    """
+    Calcula la integral numérica usando la regla de Simpson 1/3.
+    
+    Soporta dos modos de operación:
+    
+    1. Función continua: Requiere f, a, b, n (n debe ser PAR)
+       - Divide [a,b] en n subintervalos equiespaciados
+       - Aplica la regla de Simpson 1/3
+       
+    2. Datos tabulados: Requiere X, Y (opcionalmente n)
+       - Construye splines cúbicos para aproximar los datos
+       - Equiespacía el dominio [X[0], X[-1]] con n intervalos (asegura que n sea PAR)
+       - Evalúa los splines en los puntos equiespaciados
+       - Aplica la regla de Simpson 1/3 a los datos equiespaciados
+    
+    Args:
+        f (callable, optional): Función a integrar
+        a (float, optional): Límite inferior de integración
+        b (float, optional): Límite superior de integración
+        n (int, optional): Número de subintervalos (debe ser PAR). Si no se especifica
+                          con datos tabulados, se usa n = 100 * (len(X) - 1) (ajustado a PAR)
+        X (list[float], optional): Coordenadas x de datos tabulados
+        Y (list[float], optional): Coordenadas y de datos tabulados
+        verbose (bool, optional): Si True, imprime información. Por defecto True.
+        
+    Returns:
+        float: Aproximación de la integral
+        
+    Raises:
+        ValueError: Si n no es par o los parámetros son inválidos
+        
+    Examples:
+        >>> # Modo 1: Función continua
+        >>> def f(x): return x**2
+        >>> resultado = simpson(f=f, a=0, b=3, n=100)
+        
+        >>> # Modo 2: Datos tabulados (n por defecto)
+        >>> X = [0, 1, 2, 3]
+        >>> Y = [0, 1, 4, 9]
+        >>> resultado = simpson(X=X, Y=Y)
+        
+        >>> # Modo 2: Datos tabulados (n especificado)
+        >>> X = [0, 0.5, 2, 3]
+        >>> Y = [0, 0.25, 4, 9]
+        >>> resultado = simpson(X=X, Y=Y, n=500)
+    """
+    # Modo 1: Función continua
+    if f is not None and a is not None and b is not None and n is not None:
+        if n % 2 != 0:
+            raise ValueError("El número de intervalos debe ser par para Simpson 1/3")
+        
+        if verbose:
+            print(f"Modo: Función continua f(x) en [{a}, {b}] con n={n}")
+        
+        h = (b - a) / n
+        suma = f(a) + f(b)
+        
+        for i in range(1, n):
+            xi = a + i * h
+            coef = 4 if i % 2 == 1 else 2
+            suma += coef * f(xi)
+        
+        integral = (h / 3) * suma
+        
+        if verbose:
+            print(f"Resultado: ∫f(x)dx ≈ {integral}")
+        
+        return integral
+    
+    # Modo 2: Datos tabulados
+    elif X is not None and Y is not None:
+        if len(X) != len(Y):
+            raise ValueError("Los arrays X e Y deben tener la misma longitud")
+        
+        if len(X) < 3:
+            raise ValueError("Se necesitan al menos 3 puntos para Simpson 1/3")
+        
+        if n is None:
+            n = 100 * (len(X) - 1)  # Valor por defecto si no se especifica
+        
+        # Asegurar que n sea PAR
+        if n % 2 != 0:
+            n += 1
+        
+        X_original = [float(x) for x in X]
+        Y_original = [float(y) for y in Y]
+        
+        if verbose:
+            print(f"Modo: Datos tabulados ({len(X_original)} puntos)")
+            print(f"Se construirán splines cúbicos y se equiespaciarán con n={n} intervalos...")
+        
+        # Calcular funciones splines para aproximar los datos originales
+        funciones_spline, _, X_ordenado, _ = curvas_spline(X=X_original, Y=Y_original, verbose=False)
+        
+        # Definir extremos del intervalo
+        a = X_ordenado[0]   # X[0]: extremo inicial
+        b = X_ordenado[-1]  # X[-1]: extremo final
+        h = (b - a) / n
+        
+        if verbose:
+            print(f"Equiespaciando: [{a}, {b}] con n={n} (PAR), h={h:.6f}")
+        
+        # Crear nuevo arreglo X equiespaciado: X[i] = X[0] + i*h
+        X_eq = [a + i * h for i in range(n + 1)]
+        
+        # Crear arreglo Y evaluando splines: Y[i] = evaluar_spline(X[i], funciones_spline)
+        Y_eq = [evaluar_spline(X_eq[i], funciones_spline, X_ordenado) for i in range(n + 1)]
+        
+        # Aplicar método de Simpson 1/3 con los arreglos equiespaciados
+        suma = Y_eq[0] + Y_eq[-1]
+        
+        for i in range(1, n):
+            coef = 4 if i % 2 == 1 else 2
+            suma += coef * Y_eq[i]
+        
+        integral = (h / 3) * suma
+        
+        if verbose:
+            print(f"Resultado: ∫f(x)dx ≈ {integral}")
+        
+        return integral
+    
+    else:
+        raise ValueError(
+            "Parámetros inválidos. Use uno de los siguientes modos:\n"
+            "  1. Función continua: f, a, b, n (n debe ser PAR)\n"
+            "  2. Datos tabulados: X, Y (opcionalmente n)"
+        )
+        
