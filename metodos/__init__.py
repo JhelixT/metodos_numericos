@@ -38,6 +38,11 @@ from .integracion import (
     simpson
 )
 
+# Métodos de diferenciación numérica
+from .diferenciacion import (
+    diferenciacion
+)
+
 # Funciones utilitarias
 from .utils import (
     limpiar_terminal,
@@ -75,6 +80,8 @@ __all__ = [
     # Integración
     'trapecio',
     'simpson',
+    # Diferenciación
+    'diferenciacion',
     # Utilidades
     'limpiar_terminal',
     'graficar_funciones',
