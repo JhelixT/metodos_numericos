@@ -43,6 +43,14 @@ from .diferenciacion import (
     diferenciacion
 )
 
+# Métodos de resolución de EDOs de orden 1
+from .edo1 import (
+    euler,
+    heun,
+    punto_medio,
+    runge_kutta4
+)
+
 # Funciones utilitarias
 from .utils import (
     limpiar_terminal,
@@ -82,6 +90,11 @@ __all__ = [
     'simpson',
     # Diferenciación
     'diferenciacion',
+    # EDOs de orden 1
+    'euler',
+    'heun',
+    'punto_medio',
+    'runge_kutta4',
     # Utilidades
     'limpiar_terminal',
     'graficar_funciones',
