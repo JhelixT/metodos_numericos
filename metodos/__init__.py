@@ -51,6 +51,14 @@ from .edo1 import (
     runge_kutta4
 )
 
+# Análisis de convergencia para EDOs
+from .convergencia import (
+    calcular_factor_convergencia_euler,
+    calcular_factor_convergencia_heun,
+    calcular_factor_convergencia_punto_medio,
+    calcular_factor_convergencia_rk4
+)
+
 # Funciones utilitarias
 from .utils import (
     limpiar_terminal,
@@ -95,6 +103,10 @@ __all__ = [
     'heun',
     'punto_medio',
     'runge_kutta4',
+    'calcular_factor_convergencia_euler',
+    'calcular_factor_convergencia_heun',
+    'calcular_factor_convergencia_punto_medio',
+    'calcular_factor_convergencia_rk4',
     # Utilidades
     'limpiar_terminal',
     'graficar_funciones',
