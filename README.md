@@ -28,6 +28,9 @@ metodos_numericos/
     ├── sistemas_lineales.py  # 🔢 Sistemas de ecuaciones lineales
     ├── aproximacion.py       # 📈 Interpolación, regresión y splines
     ├── integracion.py        # ∫  Integración numérica
+    ├── diferenciacion.py     # ∂  Diferenciación numérica
+    ├── edo1.py               # 📊 EDOs de primer orden
+    ├── convergencia.py       # 🔬 Análisis de convergencia
     ├── utils.py              # 🛠️ Utilidades generales
     └── funciones.py          # ⚠️  Legacy (mantiene compatibilidad)
 ```
@@ -68,6 +71,39 @@ Métodos de integración numérica:
   - Modo función continua: `trapecio(f, a, b, n)`
   - Modo datos tabulados: `trapecio(X=X, Y=Y)`
   - Soporte automático para datos no equiespaciados (usa splines)
+- **`simpson()`** - Regla de Simpson 1/3 compuesta
+  - Requiere número par de intervalos
+  - Mayor precisión que trapecio para funciones suaves
+
+### ∂ `metodos.diferenciacion` - Diferenciación Numérica
+Métodos de derivación numérica:
+- **`diferenciacion()`** - Cálculo de derivadas numéricas
+  - Diferencias finitas progresivas, regresivas o centrales
+  - Orden de precisión configurable (O(h), O(h²), O(h⁴))
+  - Soporte para múltiples puntos simultáneos
+
+### 📊 `metodos.edo1` - Ecuaciones Diferenciales Ordinarias de Primer Orden
+Métodos numéricos para resolver EDOs dy/dx = f(x,y):
+- **`euler()`** - Método de Euler (orden 1)
+- **`heun()`** - Método de Heun (orden 2)
+- **`punto_medio()`** - Método del Punto Medio (orden 2)
+- **`runge_kutta4()`** - Método de Runge-Kutta de 4to orden
+
+Todos los métodos retornan: `(X, Y)` donde X son los puntos e Y las aproximaciones.
+
+### 🔬 `metodos.convergencia` - Análisis de Convergencia
+Herramientas para analizar el orden de convergencia de métodos EDO:
+- **`calcular_factor_convergencia_euler()`** - Análisis para Euler
+- **`calcular_factor_convergencia_heun()`** - Análisis para Heun
+- **`calcular_factor_convergencia_punto_medio()`** - Análisis para Punto Medio
+- **`calcular_factor_convergencia_rk4()`** - Análisis para Runge-Kutta 4
+
+Cada función ejecuta el método 3 veces con pasos h, h/2, h/4 y calcula el factor de convergencia punto a punto usando:
+```
+factor_i = ln(|y1_i - y2_i| / |y2_i - y3_i|) / ln(2)
+```
+
+Retornan: `(X, factores, factor_promedio)` - ideal para graficar y validar órdenes teóricos.
 
 ### 🛠️ `metodos.utils` - Utilidades
 Funciones auxiliares de propósito general:
@@ -162,6 +198,57 @@ resultado = trapecio(X=X, Y=Y, verbose=False)
 print(f"Integral aproximada: {resultado}")
 ```
 
+### Ejemplo 5: Resolver EDO con Runge-Kutta 4
+
+```python
+from metodos import runge_kutta4
+import matplotlib.pyplot as plt
+
+# Problema: dy/dx = -2xy, y(0) = 1
+f = lambda x, y: -2*x*y
+
+# Resolver de x=0 a x=2 con 20 pasos
+X, Y = runge_kutta4(f, x0=0, y0=1, xf=2, n=20, verbose=False)
+
+# Graficar solución
+plt.plot(X, Y, 'o-', label='RK4')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Solución numérica de dy/dx = -2xy')
+plt.legend()
+plt.grid(True)
+plt.show()
+```
+
+### Ejemplo 6: Análisis de convergencia
+
+```python
+from metodos import calcular_factor_convergencia_euler
+import matplotlib.pyplot as plt
+
+# Problema: dy/dx = y, y(0) = 1 (solución exacta: y = e^x)
+f = lambda x, y: y
+
+# Calcular factores de convergencia
+X, factores, promedio = calcular_factor_convergencia_euler(
+    f, x0=0, y0=1, xf=1, n=20, verbose=False
+)
+
+print(f"Factor promedio: {promedio:.4f}")  # Esperado ≈ 1.0 (orden 1)
+print(f"Orden teórico confirmado: ✅" if abs(promedio - 1.0) < 0.3 else "⚠️")
+
+# Graficar
+plt.plot(X, factores, 'o-', label='Factor de convergencia')
+plt.axhline(y=1.0, color='r', linestyle='--', label='Orden teórico = 1')
+plt.axhline(y=promedio, color='g', linestyle=':', label=f'Promedio = {promedio:.3f}')
+plt.xlabel('x')
+plt.ylabel('Factor')
+plt.title('Análisis de Convergencia - Método de Euler')
+plt.legend()
+plt.grid(True)
+plt.show()
+```
+
 ## ⚙️ Requisitos
 
 Python 3.8 o superior
@@ -214,7 +301,10 @@ raiz, error, iter = metodos.newton_raphson(f, f_prime, x0, tol, tipo_error)
 from metodos.raices import newton_raphson, metodo_secante
 from metodos.sistemas_lineales import jacobi, gauss_seidel
 from metodos.aproximacion import curvas_spline, interpolacion
-from metodos.integracion import trapecio
+from metodos.integracion import trapecio, simpson
+from metodos.diferenciacion import diferenciacion
+from metodos.edo1 import euler, heun, punto_medio, runge_kutta4
+from metodos.convergencia import calcular_factor_convergencia_euler
 ```
 
 ### Parámetro `verbose`
@@ -253,7 +343,7 @@ Cada guía (`guia1/`, `guia2/`, etc.) contiene ejercicios específicos que imple
 - **Guía 4**: Métodos directos (eliminación gaussiana)
 - **Guía 5**: Interpolación y regresión
 - **Guía 6**: Interpolación segmentaria (splines cúbicos)
-- **Guía 7**: Integración numérica
+- **Guía 7**: Integración numérica (trapecio, Simpson)
 
 ## 🔄 Compatibilidad y Migración
 
@@ -328,6 +418,8 @@ git commit -m "Agregar método de Simpson para integración numérica
 - ⚠️ **Diagonal Dominante**: La verificación en `esDiagDom()` usa comparación estricta (`<`) para garantizar convergencia de métodos iterativos.
 - 📊 **Splines con Datos No Equiespaciados**: El método `trapecio()` automáticamente construye splines cúbicos cuando detecta datos no equiespaciados.
 - 🔄 **Retornos Consistentes**: Todos los métodos iterativos retornan tuplas con `(resultado, error, iteraciones)` o similar.
+- 🎯 **Orden de Convergencia**: Los métodos EDO tienen órdenes teóricos: Euler (1), Heun (2), Punto Medio (2), RK4 (4). Usa el módulo `convergencia` para validarlos experimentalmente.
+- 📐 **Diferenciación Numérica**: Las diferencias centrales (O(h²)) son más precisas que las progresivas/regresivas (O(h)) para el mismo paso h.
 
 ## 📚 Referencias
 
