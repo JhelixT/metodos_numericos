@@ -35,7 +35,8 @@ from .aproximacion import (
 # Métodos de integración numérica
 from .integracion import (
     trapecio,
-    simpson
+    simpson,
+    gauss_legendre
 )
 
 # Métodos de diferenciación numérica
@@ -96,6 +97,7 @@ __all__ = [
     # Integración
     'trapecio',
     'simpson',
+    'gauss_legendre',
     # Diferenciación
     'diferenciacion',
     # EDOs de orden 1
