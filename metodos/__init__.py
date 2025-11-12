@@ -52,6 +52,22 @@ from .edo1 import (
     runge_kutta4
 )
 
+# Métodos de resolución de sistemas de EDOs
+from .sistemas_edo import (
+    euler_sistema,
+    heun_sistema,
+    punto_medio_sistema,
+    runge_kutta4_sistema
+)
+
+# Métodos de resolución de EDOs de orden superior
+from .edo_orden_superior import (
+    euler_orden_superior,
+    heun_orden_superior,
+    punto_medio_orden_superior,
+    runge_kutta4_orden_superior
+)
+
 # Análisis de convergencia para EDOs
 from .convergencia import (
     calcular_factor_convergencia_euler,
@@ -105,6 +121,17 @@ __all__ = [
     'heun',
     'punto_medio',
     'runge_kutta4',
+    # Sistemas de EDOs
+    'euler_sistema',
+    'heun_sistema',
+    'punto_medio_sistema',
+    'runge_kutta4_sistema',
+    # EDOs de orden superior
+    'euler_orden_superior',
+    'heun_orden_superior',
+    'punto_medio_orden_superior',
+    'runge_kutta4_orden_superior',
+    # Convergencia
     'calcular_factor_convergencia_euler',
     'calcular_factor_convergencia_heun',
     'calcular_factor_convergencia_punto_medio',
