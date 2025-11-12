@@ -22,6 +22,8 @@ metodos_numericos/
 ├── guia5/              # Ejercicios: Interpolación y aproximación
 ├── guia6/              # Ejercicios: Interpolación segmentaria con curvas spline
 ├── guia7/              # Ejercicios: Integración numérica
+├── ejemplos/           # 📂 Ejemplos de uso y casos de prueba
+├── modelos/            # 🧪 Modelos matemáticos aplicados
 └── metodos/            # 📚 Biblioteca principal (módulos especializados)
     ├── __init__.py           # Exportaciones y API pública
     ├── raices.py             # 🎯 Localización de raíces
@@ -29,7 +31,9 @@ metodos_numericos/
     ├── aproximacion.py       # 📈 Interpolación, regresión y splines
     ├── integracion.py        # ∫  Integración numérica
     ├── diferenciacion.py     # ∂  Diferenciación numérica
-    ├── edo1.py               # 📊 EDOs de primer orden
+    ├── edo1.py               # 📊 EDOs de primer orden (individual)
+    ├── sistemas_edo.py       # 🔗 Sistemas de EDOs de primer orden
+    ├── edo_orden_superior.py # 📐 EDOs de orden m (m ≥ 2)
     ├── convergencia.py       # 🔬 Análisis de convergencia
     ├── utils.py              # 🛠️ Utilidades generales
     └── funciones.py          # ⚠️  Legacy (mantiene compatibilidad)
@@ -83,13 +87,63 @@ Métodos de derivación numérica:
   - Soporte para múltiples puntos simultáneos
 
 ### 📊 `metodos.edo1` - Ecuaciones Diferenciales Ordinarias de Primer Orden
-Métodos numéricos para resolver EDOs dy/dx = f(x,y):
+Métodos numéricos para resolver EDOs individuales dy/dx = f(x,y):
 - **`euler()`** - Método de Euler (orden 1)
 - **`heun()`** - Método de Heun (orden 2)
 - **`punto_medio()`** - Método del Punto Medio (orden 2)
 - **`runge_kutta4()`** - Método de Runge-Kutta de 4to orden
 
 Todos los métodos retornan: `(X, Y)` donde X son los puntos e Y las aproximaciones.
+
+### 🔗 `metodos.sistemas_edo` - Sistemas de EDOs de Primer Orden
+Métodos numéricos para resolver sistemas de n EDOs de primer orden:
+```
+dy₁/dx = f₁(x, y₁, y₂, ..., yₙ)
+dy₂/dx = f₂(x, y₁, y₂, ..., yₙ)
+...
+dyₙ/dx = fₙ(x, y₁, y₂, ..., yₙ)
+```
+
+Métodos disponibles:
+- **`euler_sistema(funciones, x0, y0, xf, n, verbose=True)`** - Euler para sistemas
+- **`heun_sistema(funciones, x0, y0, xf, n, verbose=True)`** - Heun para sistemas
+- **`punto_medio_sistema(funciones, x0, y0, xf, n, verbose=True)`** - Punto Medio para sistemas
+- **`runge_kutta4_sistema(funciones, x0, y0, xf, n, verbose=True)`** - RK4 para sistemas
+
+**Parámetros:**
+- `funciones`: Lista de funciones `[f1, f2, ..., fn]` donde cada `fi(x, Y)` recibe el vector de estado Y
+- `x0, xf`: Intervalo de integración
+- `y0`: Lista con condiciones iniciales `[y1₀, y2₀, ..., yn₀]`
+- `n`: Número de pasos
+
+**Retorno:** `(X, Y)` donde X son los puntos e Y es una lista de listas, Y[i][j] = valor de yⱼ en el paso i.
+
+### 📐 `metodos.edo_orden_superior` - EDOs de Orden m
+Métodos para resolver EDOs de orden superior convirtiéndolas automáticamente a sistemas:
+```
+y⁽ᵐ⁾ = f(x, y, y', y'', ..., y⁽ᵐ⁻¹⁾)
+```
+
+Métodos disponibles:
+- **`euler_orden_superior(f, x0, y0, xf, n, orden=2, verbose=True)`**
+- **`heun_orden_superior(f, x0, y0, xf, n, orden=2, verbose=True)`**
+- **`punto_medio_orden_superior(f, x0, y0, xf, n, orden=2, verbose=True)`**
+- **`runge_kutta4_orden_superior(f, x0, y0, xf, n, orden=2, verbose=True)`**
+
+**Parámetros:**
+- `f`: Función `f(x, y, y_prima, y_doble_prima, ...)` que retorna y⁽ᵐ⁾
+- `orden`: Orden de la EDO (2 para segunda orden, 3 para tercera, etc.)
+- `y0`: Lista con condiciones iniciales `[y(x₀), y'(x₀), y''(x₀), ..., y⁽ᵐ⁻¹⁾(x₀)]`
+
+**Retorno:** `(X, Y)` donde Y es una lista de listas, Y[i] = `[y, y', y'', ..., y⁽ᵐ⁻¹⁾]` en el paso i.
+
+**Conversión interna:** La EDO de orden m se convierte al sistema:
+```
+y₁' = y₂
+y₂' = y₃
+...
+yₘ' = f(x, y₁, y₂, ..., yₘ)
+```
 
 ### 🔬 `metodos.convergencia` - Análisis de Convergencia
 Herramientas para analizar el orden de convergencia de métodos EDO:
@@ -249,6 +303,156 @@ plt.grid(True)
 plt.show()
 ```
 
+### Ejemplo 7: Resolver sistema de EDOs (Oscilador Armónico)
+
+```python
+from metodos import runge_kutta4_sistema
+import matplotlib.pyplot as plt
+
+# Sistema: y'' = -y (oscilador armónico simple)
+# Conversión: y₁ = y, y₂ = y'
+# dy₁/dx = y₂
+# dy₂/dx = -y₁
+
+f1 = lambda x, Y: Y[1]         # dy/dx = y'
+f2 = lambda x, Y: -Y[0]        # dy'/dx = -y
+
+# Condiciones iniciales: y(0)=1, y'(0)=0
+X, Y = runge_kutta4_sistema(
+    funciones=[f1, f2],
+    x0=0,
+    y0=[1.0, 0.0],
+    xf=10,
+    n=100,
+    verbose=False
+)
+
+# Extraer y(x) y y'(x)
+y_valores = [Y[i][0] for i in range(len(Y))]
+y_prima_valores = [Y[i][1] for i in range(len(Y))]
+
+# Graficar
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+plt.plot(X, y_valores, 'b-', label='y(x)')
+plt.plot(X, y_prima_valores, 'r--', label="y'(x)")
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Oscilador Armónico')
+plt.legend()
+plt.grid(True)
+
+plt.subplot(1, 2, 2)
+plt.plot(y_valores, y_prima_valores, 'g-')
+plt.xlabel('y')
+plt.ylabel("y'")
+plt.title('Diagrama de Fase')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+```
+
+### Ejemplo 8: Resolver EDO de orden superior
+
+```python
+from metodos import runge_kutta4_orden_superior
+import matplotlib.pyplot as plt
+import math
+
+# EDO de segundo orden: y'' + 2y' + 2y = 0
+# Solución exacta: y = e^(-x) * cos(x)
+def f(x, y, y_prima):
+    return -2*y_prima - 2*y
+
+# Condiciones iniciales: y(0)=1, y'(0)=-1
+X, Y = runge_kutta4_orden_superior(
+    f=f,
+    x0=0,
+    y0=[1.0, -1.0],  # [y(0), y'(0)]
+    xf=5,
+    n=100,
+    orden=2,
+    verbose=False
+)
+
+# Extraer soluciones
+y_num = [Y[i][0] for i in range(len(Y))]
+y_prima_num = [Y[i][1] for i in range(len(Y))]
+
+# Solución exacta
+y_exacta = [math.exp(-x) * math.cos(x) for x in X]
+
+# Graficar comparación
+plt.plot(X, y_num, 'b-', label='Numérica', linewidth=2)
+plt.plot(X, y_exacta, 'r--', label='Exacta', linewidth=1)
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title("y'' + 2y' + 2y = 0")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Calcular error
+errores = [abs(y_num[i] - y_exacta[i]) for i in range(len(X))]
+print(f"Error máximo: {max(errores):.2e}")
+```
+
+### Ejemplo 9: Comparar métodos en un sistema (Lotka-Volterra)
+
+```python
+from metodos import (euler_sistema, heun_sistema, 
+                     punto_medio_sistema, runge_kutta4_sistema)
+import matplotlib.pyplot as plt
+
+# Sistema depredador-presa de Lotka-Volterra
+# dx/dt = αx - βxy (presas)
+# dy/dt = δxy - γy (depredadores)
+alpha, beta, delta, gamma = 1.0, 0.5, 0.5, 1.0
+
+f1 = lambda t, Y: alpha*Y[0] - beta*Y[0]*Y[1]
+f2 = lambda t, Y: delta*Y[0]*Y[1] - gamma*Y[1]
+
+# Condiciones iniciales
+funciones = [f1, f2]
+t0, tf, n = 0, 20, 100
+y0 = [2.0, 1.0]  # poblaciones iniciales
+
+# Resolver con cada método
+X_e, Y_e = euler_sistema(funciones, t0, y0, tf, n, verbose=False)
+X_h, Y_h = heun_sistema(funciones, t0, y0, tf, n, verbose=False)
+X_pm, Y_pm = punto_medio_sistema(funciones, t0, y0, tf, n, verbose=False)
+X_rk, Y_rk = runge_kutta4_sistema(funciones, t0, y0, tf, n, verbose=False)
+
+# Graficar comparación
+plt.figure(figsize=(12, 5))
+
+# Evolución temporal
+plt.subplot(1, 2, 1)
+plt.plot([Y_e[i][0] for i in range(len(Y_e))], label='Presas (Euler)', alpha=0.6)
+plt.plot([Y_rk[i][0] for i in range(len(Y_rk))], label='Presas (RK4)', linewidth=2)
+plt.xlabel('Tiempo')
+plt.ylabel('Población')
+plt.title('Evolución Temporal')
+plt.legend()
+plt.grid(True)
+
+# Diagrama de fase
+plt.subplot(1, 2, 2)
+plt.plot([Y_e[i][0] for i in range(len(Y_e))], 
+         [Y_e[i][1] for i in range(len(Y_e))], 
+         label='Euler', alpha=0.5)
+plt.plot([Y_rk[i][0] for i in range(len(Y_rk))], 
+         [Y_rk[i][1] for i in range(len(Y_rk))], 
+         label='RK4', linewidth=2)
+plt.xlabel('Presas')
+plt.ylabel('Depredadores')
+plt.title('Diagrama de Fase')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+```
+
 ## ⚙️ Requisitos
 
 Python 3.8 o superior
@@ -304,6 +508,8 @@ from metodos.aproximacion import curvas_spline, interpolacion
 from metodos.integracion import trapecio, simpson
 from metodos.diferenciacion import diferenciacion
 from metodos.edo1 import euler, heun, punto_medio, runge_kutta4
+from metodos.sistemas_edo import euler_sistema, heun_sistema, punto_medio_sistema, runge_kutta4_sistema
+from metodos.edo_orden_superior import euler_orden_superior, runge_kutta4_orden_superior
 from metodos.convergencia import calcular_factor_convergencia_euler
 ```
 
@@ -344,6 +550,27 @@ Cada guía (`guia1/`, `guia2/`, etc.) contiene ejercicios específicos que imple
 - **Guía 5**: Interpolación y regresión
 - **Guía 6**: Interpolación segmentaria (splines cúbicos)
 - **Guía 7**: Integración numérica (trapecio, Simpson)
+
+## 📂 Carpeta de Ejemplos
+
+La carpeta `ejemplos/` contiene scripts listos para ejecutar que demuestran el uso de diferentes métodos:
+
+- **`ejemplo_euler_sistema.py`**: Ejemplo básico de uso de euler_sistema con oscilador armónico
+- **`ejemplo_comparacion_metodos.py`**: Comparación exhaustiva de los 4 métodos (Euler, Heun, Punto Medio, RK4) con análisis de error
+- **`ejemplo_edo_orden_superior.py`**: Tutorial completo sobre EDOs de orden superior con múltiples ejemplos
+- **`ejemplo_convergencia_completo.py`**: Análisis de convergencia de métodos EDO
+- **`test_integracion.py`**: Tests de integración para verificar funcionamiento
+
+Para ejecutar cualquier ejemplo:
+```bash
+cd ejemplos
+python ejemplo_euler_sistema.py
+```
+
+O desde la raíz del proyecto:
+```bash
+python ejemplos/ejemplo_euler_sistema.py
+```
 
 ## 🔄 Compatibilidad y Migración
 
@@ -420,6 +647,9 @@ git commit -m "Agregar método de Simpson para integración numérica
 - 🔄 **Retornos Consistentes**: Todos los métodos iterativos retornan tuplas con `(resultado, error, iteraciones)` o similar.
 - 🎯 **Orden de Convergencia**: Los métodos EDO tienen órdenes teóricos: Euler (1), Heun (2), Punto Medio (2), RK4 (4). Usa el módulo `convergencia` para validarlos experimentalmente.
 - 📐 **Diferenciación Numérica**: Las diferencias centrales (O(h²)) son más precisas que las progresivas/regresivas (O(h)) para el mismo paso h.
+- 🔗 **Sistemas de EDOs**: Las funciones del sistema reciben el vector completo de estado Y como parámetro. Y[0] es la primera variable, Y[1] la segunda, etc.
+- 📐 **EDOs de Orden Superior**: Se convierten automáticamente a sistemas de primer orden. El vector y0 debe contener `[y(x₀), y'(x₀), ..., y⁽ᵐ⁻¹⁾(x₀)]`.
+- 🎲 **Estructura de Y en Sistemas**: Para sistemas, Y[i][j] representa el valor de la variable j en el paso i. Para acceder a toda la solución de la variable k: `[Y[i][k] for i in range(len(Y))]`.
 
 ## 📚 Referencias
 
