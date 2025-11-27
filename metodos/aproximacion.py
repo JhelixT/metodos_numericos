@@ -419,6 +419,205 @@ def graficar_regresion(p, coef, X, Y, r):
     plt.show()
 
 
+def visualizar_polinomio(polinomio, coef, X, Y, x_eval, titulo="Polinomio Interpolador", verbose=True):
+    """
+    Visualiza el polinomio interpolador y marca el punto específico de evaluación.
+    
+    Args:
+        polinomio (callable): Función del polinomio interpolador
+        coef (list[float]): Coeficientes del polinomio
+        X (list[float]): Coordenadas x de los puntos de interpolación
+        Y (list[float]): Coordenadas y de los puntos de interpolación
+        x_eval (float): Punto donde se evalúa el polinomio
+        titulo (str, optional): Título del gráfico. Por defecto "Polinomio Interpolador"
+        verbose (bool, optional): Si False, solo imprime la función en una línea. Por defecto True.
+    """
+    # Calcular el valor en el punto de evaluación
+    y_eval = polinomio(x_eval)
+    
+    # Crear rango para graficar el polinomio
+    x_min = min(min(X), x_eval) - 0.5
+    x_max = max(max(X), x_eval) + 0.5
+    x_vals = np.linspace(x_min, x_max, 500)
+    y_vals = [polinomio(x) for x in x_vals]
+    
+    # Crear la figura
+    plt.figure(figsize=(10, 6))
+    
+    # Graficar el polinomio
+    plt.plot(x_vals, y_vals, 'b-', linewidth=2, label='Polinomio interpolador')
+    
+    # Graficar los puntos de datos originales
+    plt.scatter(X, Y, color='red', s=100, zorder=5, label='Puntos de datos', marker='o')
+    
+    # Marcar el punto de evaluación
+    plt.scatter([x_eval], [y_eval], color='green', s=150, zorder=6, 
+                marker='*', edgecolors='black', linewidth=1.5,
+                label=f'Evaluación en x={x_eval:.2f}')
+    
+    # Línea vertical en el punto de evaluación
+    plt.axvline(x=x_eval, color='green', linestyle='--', alpha=0.3)
+    
+    # Línea horizontal en el valor de evaluación
+    plt.axhline(y=y_eval, color='green', linestyle='--', alpha=0.3)
+    
+    # Configurar el gráfico
+    plt.grid(True, alpha=0.3)
+    plt.xlabel('x', fontsize=12)
+    plt.ylabel('y', fontsize=12)
+    plt.title(titulo, fontsize=14, fontweight='bold')
+    plt.legend(fontsize=10)
+    
+    # Mostrar información en el gráfico
+    texto = f'P({x_eval:.2f}) = {y_eval:.6f}'
+    plt.text(x_eval, y_eval, f'  {texto}', fontsize=10, 
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7))
+    
+    # Imprimir información del polinomio
+    if verbose:
+        print(f"\n{'='*60}")
+        print(f"POLINOMIO INTERPOLADOR (grado {len(coef)-1})")
+        print(f"{'='*60}")
+        print("\nForma general: P(x) = c₀ + c₁x + c₂x² + ... + cₙxⁿ\n")
+        print("Coeficientes:")
+        for i, c in enumerate(coef):
+            signo = '+' if c >= 0 else ''
+            print(f"  c{i} (coef. de x^{i}): {signo}{c:.8f}")
+        
+        print(f"\nForma explícita:")
+        terminos = []
+        for i, c in enumerate(coef):
+            if abs(c) < 1e-10:
+                continue
+            if i == 0:
+                terminos.append(f"{c:.6f}")
+            elif i == 1:
+                terminos.append(f"{c:+.6f}x")
+            else:
+                terminos.append(f"{c:+.6f}x^{i}")
+        print(f"  P(x) = {' '.join(terminos)}")
+        
+        print(f"\nEvaluación en x = {x_eval}:")
+        print(f"  P({x_eval}) = {y_eval:.8f}")
+        print(f"{'='*60}\n")
+    else:
+        # Formato simplificado: una línea
+        terminos = []
+        for i, c in enumerate(coef):
+            if abs(c) < 1e-10:
+                continue
+            if i == 0:
+                terminos.append(f"{c:.6f}")
+            elif i == 1:
+                terminos.append(f"{c:+.6f}x")
+            else:
+                terminos.append(f"{c:+.6f}x^{i}")
+        print(f"P(x) = {' '.join(terminos)}")
+    
+    plt.tight_layout()
+    plt.show()
+
+
+def visualizar_spline(funciones_spline, coeficientes, X, Y, x_eval, titulo="Spline Cúbico", verbose=True):
+    """
+    Visualiza el spline cúbico y marca el punto específico de evaluación.
+    
+    Args:
+        funciones_spline (list[callable]): Lista de funciones spline por intervalo
+        coeficientes (list[list[float]]): Coeficientes [a,b,c,d] de cada spline
+        X (list[float]): Coordenadas x de los puntos de interpolación
+        Y (list[float]): Coordenadas y de los puntos de interpolación
+        x_eval (float): Punto donde se evalúa el spline
+        titulo (str, optional): Título del gráfico. Por defecto "Spline Cúbico"
+        verbose (bool, optional): Si False, solo imprime la función en una línea. Por defecto True.
+    """
+    # Calcular el valor en el punto de evaluación
+    y_eval = evaluar_spline(x_eval, funciones_spline, X)
+    
+    # Encontrar el intervalo donde está x_eval
+    intervalo_eval = None
+    for k in range(len(X) - 1):
+        if X[k] <= x_eval <= X[k+1]:
+            intervalo_eval = k
+            break
+    
+    # Crear la figura
+    plt.figure(figsize=(12, 7))
+    
+    # Graficar cada segmento del spline
+    colores = plt.cm.tab10(np.linspace(0, 1, len(funciones_spline)))
+    
+    for k in range(len(funciones_spline)):
+        x_intervalo = np.linspace(X[k], X[k+1], 100)
+        y_intervalo = [funciones_spline[k](x) for x in x_intervalo]
+        
+        # Resaltar el intervalo donde se evalúa
+        if k == intervalo_eval:
+            plt.plot(x_intervalo, y_intervalo, 
+                    color='green', linewidth=3, 
+                    label=f'Spline activo: [{X[k]:.2f}, {X[k+1]:.2f}]',
+                    zorder=4)
+        else:
+            plt.plot(x_intervalo, y_intervalo, 
+                    color=colores[k], linewidth=2, alpha=0.6,
+                    label=f'Spline {k+1}: [{X[k]:.2f}, {X[k+1]:.2f}]')
+    
+    # Graficar los puntos de datos originales
+    plt.scatter(X, Y, color='red', s=100, zorder=5, label='Puntos de datos', marker='o')
+    
+    # Marcar el punto de evaluación
+    plt.scatter([x_eval], [y_eval], color='green', s=200, zorder=6, 
+                marker='*', edgecolors='black', linewidth=2,
+                label=f'Evaluación en x={x_eval:.2f}')
+    
+    # Línea vertical en el punto de evaluación
+    plt.axvline(x=x_eval, color='green', linestyle='--', alpha=0.3)
+    
+    # Línea horizontal en el valor de evaluación
+    plt.axhline(y=y_eval, color='green', linestyle='--', alpha=0.3)
+    
+    # Configurar el gráfico
+    plt.grid(True, alpha=0.3)
+    plt.xlabel('x', fontsize=12)
+    plt.ylabel('y', fontsize=12)
+    plt.title(titulo, fontsize=14, fontweight='bold')
+    plt.legend(fontsize=9, loc='best')
+    
+    # Mostrar información en el gráfico
+    texto = f'S({x_eval:.2f}) = {y_eval:.6f}'
+    plt.text(x_eval, y_eval, f'  {texto}', fontsize=10,
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='yellow', alpha=0.7))
+    
+    # Imprimir información del spline activo
+    if intervalo_eval is not None:
+        a, b, c, d = coeficientes[intervalo_eval]
+        
+        if verbose:
+            print(f"\n{'='*70}")
+            print(f"SPLINE CÚBICO ACTIVO EN x = {x_eval}")
+            print(f"{'='*70}")
+            print(f"\nIntervalo: [{X[intervalo_eval]:.4f}, {X[intervalo_eval+1]:.4f}]")
+            print(f"Spline número: {intervalo_eval + 1} de {len(funciones_spline)}")
+            print(f"\nForma general: S(x) = ax³ + bx² + cx + d")
+            print(f"\nCoeficientes:")
+            print(f"  a (coef. de x³): {a:.8f}")
+            print(f"  b (coef. de x²): {b:.8f}")
+            print(f"  c (coef. de x):  {c:.8f}")
+            print(f"  d (término indep.): {d:.8f}")
+            print(f"\nForma explícita:")
+            print(f"  S(x) = {a:.6f}x³ {b:+.6f}x² {c:+.6f}x {d:+.6f}")
+            print(f"\nEvaluación:")
+            print(f"  S({x_eval}) = {a:.6f}·({x_eval})³ {b:+.6f}·({x_eval})² {c:+.6f}·({x_eval}) {d:+.6f}")
+            print(f"  S({x_eval}) = {y_eval:.8f}")
+            print(f"{'='*70}\n")
+        else:
+            # Formato simplificado: una línea
+            print(f"S(x) = {a:.6f}x³ {b:+.6f}x² {c:+.6f}x {d:+.6f}  [Intervalo {intervalo_eval+1}: [{X[intervalo_eval]:.2f}, {X[intervalo_eval+1]:.2f}]]")
+    
+    plt.tight_layout()
+    plt.show()
+
+
 def graficar_splines(funciones_spline, coeficientes, X, Y, funcion_real=None):
     """
     Visualiza las curvas spline junto con los puntos originales.

@@ -29,7 +29,9 @@ from .aproximacion import (
     evaluar_spline,
     graficar_interpolacion,
     graficar_regresion,
-    graficar_splines
+    graficar_splines,
+    visualizar_polinomio,
+    visualizar_spline
 )
 
 # Métodos de integración numérica
