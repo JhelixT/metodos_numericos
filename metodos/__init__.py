@@ -41,7 +41,8 @@ from .integracion import (
 
 # Métodos de diferenciación numérica
 from .diferenciacion import (
-    diferenciacion
+    diferenciacion,
+    diferenciacion_tabulada
 )
 
 # Métodos de resolución de EDOs de orden 1

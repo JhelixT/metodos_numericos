@@ -6,6 +6,69 @@ para calcular aproximaciones de derivadas.
 """
 
 
+def diferenciacion_tabulada(X, Y, verbose=True):
+    """
+    Calcula la derivada numérica a partir de datos tabulados equiespaciados usando diferencias finitas.
+    
+    Utiliza diferencias finitas con precisión O(h²):
+    - Puntos extremos: fórmulas de 3 puntos hacia adelante/atrás
+    - Puntos interiores: fórmula centrada de 3 puntos
+    
+    Args:
+        X (list[float]): Coordenadas x equiespaciadas (deben estar ordenados)
+        Y (list[float]): Valores de la función en cada punto x
+        verbose (bool, optional): Si True, imprime información. Por defecto True.
+        
+    Returns:
+        tuple: (X, dY) donde dY son las derivadas en cada punto de X
+            
+    Raises:
+        ValueError: Si los parámetros son inválidos
+        
+    Examples:
+        >>> # Calcular derivadas en todos los puntos
+        >>> X = [0, 0.1, 0.2, 0.3, 0.4]
+        >>> Y = [0, 0.01, 0.04, 0.09, 0.16]
+        >>> X_out, dY = diferenciacion_tabulada(X, Y)
+        
+    Notes:
+        - Los datos X deben estar equiespaciados
+        - h es constante = X[i+1] - X[i]
+    """
+    # Validaciones
+    if len(X) != len(Y):
+        raise ValueError(f"X e Y deben tener la misma longitud: len(X)={len(X)}, len(Y)={len(Y)}")
+    
+    if len(X) < 3:
+        raise ValueError("Se necesitan al menos 3 puntos para calcular derivadas con O(h²)")
+    
+    n = len(X) - 1
+    h = X[1] - X[0]  # Espaciado constante
+    
+    if verbose:
+        print(f"Diferenciación numérica con datos tabulados ({len(X)} puntos)")
+        print(f"Datos equiespaciados en [{X[0]}, {X[-1]}] con h = {h:.6f}")
+    
+    # Calcular derivadas en todos los puntos de X
+    dY = [0.0] * len(X)
+    
+    # Punto inicial: diferencias hacia adelante de 3 puntos O(h²)
+    dY[0] = (-3*Y[0] + 4*Y[1] - Y[2]) / (2*h)
+    
+    # Puntos interiores: diferencias centrales O(h²)
+    for i in range(1, n):
+        dY[i] = (Y[i+1] - Y[i-1]) / (2*h)
+    
+    # Punto final: diferencias hacia atrás de 3 puntos O(h²)
+    dY[n] = (Y[n-2] - 4*Y[n-1] + 3*Y[n]) / (2*h)
+    
+    if verbose:
+        print(f"Derivadas calculadas con precisión O(h²)")
+        print(f"Rango de derivadas: [{min(dY):.6f}, {max(dY):.6f}]")
+    
+    return X, dY
+
+
 def diferenciacion(f, a, b, n, verbose=True):
     """
     Calcula la derivada numérica de una función en puntos equiespaciados.
