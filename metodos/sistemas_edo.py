@@ -92,7 +92,7 @@ def euler_sistema(funciones, x0, y0, xf, n, verbose=True):
     # Y_{i+1} = Y_i + h * F(x_i, Y_i)
     # donde F(x, Y) = [f1(x,Y), f2(x,Y), ..., fn(x,Y)]
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
         
         # Calcular cada componente del sistema
         for j in range(num_ecuaciones):
@@ -175,7 +175,7 @@ def heun_sistema(funciones, x0, y0, xf, n, verbose=True):
     
     # Método de Heun para sistemas
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
         
         # Predictor (Euler): Yp = Y_i + h * F(x_i, Y_i)
         Yp = [0] * num_ecuaciones
@@ -263,7 +263,7 @@ def punto_medio_sistema(funciones, x0, y0, xf, n, verbose=True):
     
     # Método del punto medio para sistemas
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
         
         # Calcular Ym en el punto medio
         Xm = X[i] + h / 2
@@ -360,7 +360,7 @@ def runge_kutta4_sistema(funciones, x0, y0, xf, n, verbose=True):
     
     # Método de Runge-Kutta 4 para sistemas
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
         
         # Calcular k1, k2, k3, k4 para cada ecuación
         k1 = [0] * num_ecuaciones

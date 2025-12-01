@@ -74,7 +74,7 @@ def metodo_propuesto(
 
     # Pasos siguientes
     for i in range(1, n):
-        X[i + 1] = X[i] + h
+        X[i + 1] = X[0] + (i + 1) * h
         fi = f(X[i], Y[i])
         fim1 = f(X[i - 1], Y[i - 1])
         Y[i + 1] = Y[i] + h * (2 * fi - fim1)

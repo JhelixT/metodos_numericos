@@ -60,7 +60,7 @@ def euler(f, x0, y0, xf, n, verbose=True):
     
     # Método de Euler: y_{i+1} = y_i + h*f(x_i, y_i)
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
         Y[i+1] = Y[i] + h * f(X[i], Y[i])
     
     if verbose:
@@ -124,7 +124,7 @@ def heun(f, x0, y0, xf, n, verbose=True):
     
     # Método de Heun
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
         
         # Predictor (Euler)
         Yp = Y[i] + h * f(X[i], Y[i])
@@ -193,7 +193,7 @@ def punto_medio(f, x0, y0, xf, n, verbose=True):
     
     # Método del punto medio
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
         
         # Evaluar en el punto medio
         Xm = X[i] + h / 2
@@ -275,7 +275,7 @@ def runge_kutta4(f, x0, y0, xf, n, verbose=True):
     
     # Método de Runge-Kutta 4
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
         
         # Calcular las 4 pendientes
         k1 = f(X[i], Y[i])

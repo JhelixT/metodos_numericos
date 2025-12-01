@@ -68,7 +68,7 @@ def heum_orden3(f, x0, y0, xf, n, verbose=True):
     Y[0] = y0
     
     for i in range(n):
-        X[i+1] = X[i] + h
+        X[i+1] = X[0] + (i+1) * h
 
         k1 = f(X[i], Y[i])
         k2 = f(X[i] + h/3, Y[i] + h*k1/3)
