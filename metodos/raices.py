@@ -5,80 +5,118 @@ Este módulo contiene implementaciones de diferentes métodos iterativos para
 encontrar raíces (ceros) de funciones continuas.
 """
 
-def buscar_raiz(f, a, b, tipo_error, tolerancia, metodo=None, verbose=True):
+def biseccion(f, a, b, tolerancia, tipo_error=1, verbose=True):
     """
-    Encuentra una raíz de una función en un intervalo dado usando el método de Bisección o Regula Falsi.
+    Encuentra una raíz de una función en un intervalo dado usando el método de Bisección.
+    El método divide el intervalo por la mitad en cada iteración.
 
     Args:
         f (callable): Función continua de la cual se busca la raíz
         a (float): Límite inferior del intervalo
         b (float): Límite superior del intervalo
-        tipo_error (int): Tipo de error a utilizar
-            1: Error absoluto
-            2: Error porcentual
         tolerancia (float): Tolerancia deseada para el error
-        metodo (int, optional): Método a utilizar
-            1: Bisección - divide el intervalo por la mitad
-            2: Regula Falsi - usa interpolación lineal
-            None: Permite al usuario elegir el método (requiere verbose=True)
-        verbose (bool, optional): Si True, imprime resultados y permite input del usuario.
-            Por defecto True.
+        tipo_error (int, optional): Tipo de error a utilizar
+            1: Error absoluto (default)
+            2: Error porcentual
+        verbose (bool, optional): Si True, imprime resultados. Por defecto True.
 
     Returns:
-        tuple[float, list[float], int]: Tupla con:
-            - raíz encontrada
-            - lista de errores en cada iteración
-            - número de iteraciones realizadas
-
-    Raises:
-        ValueError: Si f(a) y f(b) tienen el mismo signo o si metodo es None y verbose=False
+        tuple[float, float, int]: Tupla con (raíz, error final, número de iteraciones)
+            Retorna (None, None, 0) si no hay raíz en el intervalo
 
     Note:
         - Requiere que f(a) y f(b) tengan signos opuestos (teorema del valor intermedio)
-        - Bisección: convergencia garantizada pero lenta
-        - Regula Falsi: convergencia más rápida pero puede ser lenta en algunos casos
+        - Convergencia garantizada pero lenta
     """
-    if f(a)*f(b) > 0:
+    if f(a) * f(b) > 0:
         if verbose:
             print("No hay raiz dentro de este intervalo")
         return None, None, 0
     
-    if metodo is None:
-        if not verbose:
-            raise ValueError("Debe especificar el método cuando verbose=False")
-        metodo = int(input("Seleccione método:\n1- Bisección\n2- Regula-Falsi\n"))
-
     anterior = a
     contador = 0
-    errores = []
-    
-    tolerancia = tolerancia/100 if tipo_error == 2 else tolerancia
+    tolerancia_ajustada = tolerancia / 100 if tipo_error == 2 else tolerancia
     
     while True:
-        c = (a+b)/2 if metodo == 1 else (a*f(b)-b*f(a))/(f(b)-f(a))
+        c = (a + b) / 2
         contador += 1
 
         if f(c) == 0:
             error = 0
-            errores.append(error)
             break
-        elif f(a)*f(c) > 0:
+        elif f(a) * f(c) > 0:
             a = c
         else:
             b = c
 
-        error = abs(c-anterior)/abs(c) if tipo_error == 2 else abs(c-anterior)
-        errores.append(error*100 if tipo_error == 2 else error)
+        error = abs(c - anterior) / abs(c) if tipo_error == 2 else abs(c - anterior)
         anterior = c
 
-        if error < tolerancia:
+        if error < tolerancia_ajustada:
             break
     
     if verbose:
         print(f"La raiz es {c} con un error de {error*100 if tipo_error==2 else error}{'%' if tipo_error==2 else ''}")
         print(f"Le tomó {contador} iteraciones")
     
-    return c, errores, contador
+    return c, error, contador
+
+
+def regula_falsi(f, a, b, tolerancia, tipo_error=1, verbose=True):
+    """
+    Encuentra una raíz de una función en un intervalo dado usando el método de Regula Falsi.
+    El método usa interpolación lineal para encontrar el siguiente punto.
+
+    Args:
+        f (callable): Función continua de la cual se busca la raíz
+        a (float): Límite inferior del intervalo
+        b (float): Límite superior del intervalo
+        tolerancia (float): Tolerancia deseada para el error
+        tipo_error (int, optional): Tipo de error a utilizar
+            1: Error absoluto (default)
+            2: Error porcentual
+        verbose (bool, optional): Si True, imprime resultados. Por defecto True.
+
+    Returns:
+        tuple[float, float, int]: Tupla con (raíz, error final, número de iteraciones)
+            Retorna (None, None, 0) si no hay raíz en el intervalo
+
+    Note:
+        - Requiere que f(a) y f(b) tengan signos opuestos (teorema del valor intermedio)
+        - Convergencia más rápida que bisección pero puede ser lenta en algunos casos
+    """
+    if f(a) * f(b) > 0:
+        if verbose:
+            print("No hay raiz dentro de este intervalo")
+        return None, None, 0
+    
+    anterior = a
+    contador = 0
+    tolerancia_ajustada = tolerancia / 100 if tipo_error == 2 else tolerancia
+    
+    while True:
+        c = (a * f(b) - b * f(a)) / (f(b) - f(a))
+        contador += 1
+
+        if f(c) == 0:
+            error = 0
+            break
+        elif f(a) * f(c) > 0:
+            a = c
+        else:
+            b = c
+
+        error = abs(c - anterior) / abs(c) if tipo_error == 2 else abs(c - anterior)
+        anterior = c
+
+        if error < tolerancia_ajustada:
+            break
+    
+    if verbose:
+        print(f"La raiz es {c} con un error de {error*100 if tipo_error==2 else error}{'%' if tipo_error==2 else ''}")
+        print(f"Le tomó {contador} iteraciones")
+    
+    return c, error, contador
 
 
 def raiz_punto_fijo(g, g_prime, a, tolerancia, tipo_error, verbose=True):

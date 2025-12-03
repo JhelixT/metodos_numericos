@@ -2,7 +2,8 @@
 
 # Métodos de localización de raíces
 from .raices import (
-    buscar_raiz,
+    biseccion,
+    regula_falsi,
     raiz_punto_fijo,
     newton_raphson,
     metodo_secante

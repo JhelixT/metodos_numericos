@@ -47,7 +47,7 @@ def esDiagDom(A, verbose=True):
     return True
 
 
-def jacobi(A, B, Xn, Xv, tolerancia, tipo_error=1, verbose=True, max_iter=10000):
+def jacobi(A, B, tolerancia=1e-6, tipo_error=1, X0=None, verbose=True, max_iter=10000):
     """
     Implementa el método iterativo de Jacobi para resolver sistemas de ecuaciones lineales.
     El método de Jacobi actualiza cada componente de la solución usando los valores de la iteración anterior.
@@ -55,10 +55,9 @@ def jacobi(A, B, Xn, Xv, tolerancia, tipo_error=1, verbose=True, max_iter=10000)
     Args:
         A (list[list[float]]): Matriz de coeficientes
         B (list[float]): Vector de términos independientes
-        Xn (list[float]): Vector para almacenar la solución nueva
-        Xv (list[float]): Vector para almacenar la solución anterior
-        tolerancia (float): Tolerancia deseada para el error
+        tolerancia (float, optional): Tolerancia deseada para el error. Por defecto 1e-6.
         tipo_error (int, optional): 1=absoluto, 2=porcentual. Por defecto 1.
+        X0 (list[float], optional): Vector inicial. Si es None, se inicializa con ceros. Por defecto None.
         verbose (bool, optional): Si True, imprime resultados. Por defecto True.
         max_iter (int, optional): Número máximo de iteraciones. Por defecto 10000.
 
@@ -76,6 +75,8 @@ def jacobi(A, B, Xn, Xv, tolerancia, tipo_error=1, verbose=True, max_iter=10000)
         - El error se calcula como la norma euclidiana de la diferencia entre iteraciones
     """
     n = len(A)
+    Xn = [0] * n
+    Xv = X0[:] if X0 is not None else [0] * n
     count = 0
     errorV = 1000
     if tipo_error == 2: 
@@ -116,13 +117,13 @@ def jacobi(A, B, Xn, Xv, tolerancia, tipo_error=1, verbose=True, max_iter=10000)
         print("Las soluciones son:")
         for i in range(n):
             print(f"X{i} = {Xn[i]}")
-        print(f"Con un error de {error*100 if tipo_error==2 else error}{'%' if tipo_error==2 else ''}")
+        print(f"Con un error de {error*100 if tipo_error==2 else error:.6e}{'%' if tipo_error==2 else ''}")
         print(f"Se resolvio en {count} iteraciones")
     
     return Xn, error, count, True
 
 
-def gauss_seidel(A, B, Xn, Xv, tolerancia, omega=1, tipo_error=1, verbose=True, max_iter=10000):
+def gauss_seidel(A, B, tolerancia=1e-6, omega=1, tipo_error=1, X0=None, verbose=True, max_iter=10000):
     """
     Implementa el método iterativo de Gauss-Seidel con factor de relajación (SOR) para resolver sistemas de ecuaciones lineales.
     A diferencia de Jacobi, utiliza los valores actualizados tan pronto como estén disponibles.
@@ -130,14 +131,13 @@ def gauss_seidel(A, B, Xn, Xv, tolerancia, omega=1, tipo_error=1, verbose=True, 
     Args:
         A (list[list[float]]): Matriz de coeficientes
         B (list[float]): Vector de términos independientes
-        Xn (list[float]): Vector para almacenar la solución nueva
-        Xv (list[float]): Vector para almacenar la solución anterior
-        tolerancia (float): Tolerancia deseada para el error
+        tolerancia (float, optional): Tolerancia deseada para el error. Por defecto 1e-6.
         omega (float, optional): Factor de relajación. Por defecto 1.
             - omega < 1: sub-relajación
             - omega = 1: método de Gauss-Seidel estándar
             - omega > 1: sobre-relajación
         tipo_error (int, optional): 1=absoluto, 2=porcentual. Por defecto 1.
+        X0 (list[float], optional): Vector inicial. Si es None, se inicializa con ceros. Por defecto None.
         verbose (bool, optional): Si True, imprime resultados. Por defecto True.
         max_iter (int, optional): Número máximo de iteraciones. Por defecto 10000.
 
@@ -155,6 +155,8 @@ def gauss_seidel(A, B, Xn, Xv, tolerancia, omega=1, tipo_error=1, verbose=True, 
         - El error se calcula como la norma euclidiana de la diferencia entre iteraciones
     """
     n = len(A)
+    Xn = [0] * n
+    Xv = X0[:] if X0 is not None else [0] * n
     count = 0
     errorV = 1000
     if tipo_error == 2: 
@@ -199,13 +201,13 @@ def gauss_seidel(A, B, Xn, Xv, tolerancia, omega=1, tipo_error=1, verbose=True, 
         print("Las soluciones son:")
         for i in range(n):
             print(f"X{i} = {Xn[i]}")
-        print(f"Con un error de {error*100 if tipo_error==2 else error}{'%' if tipo_error==2 else ''}")
+        print(f"Con un error de {error*100 if tipo_error==2 else error:.6e}{'%' if tipo_error==2 else ''}")
         print(f"Se resolvio en {count} iteraciones")
     
     return Xn, error, count, True
 
 
-def resolverJG(A, B, tolerancia=None, tipo_error=1, metodo=None, omega=1, verbose=True):
+def resolverJG(A, B, tolerancia=None, tipo_error=1, metodo=None, omega=1, X0=None, verbose=True):
     """
     Resuelve un sistema de ecuaciones lineales utilizando métodos iterativos (Jacobi o Gauss-Seidel).
     
@@ -216,6 +218,7 @@ def resolverJG(A, B, tolerancia=None, tipo_error=1, metodo=None, omega=1, verbos
         tipo_error (int, optional): 1=absoluto, 2=porcentual. Por defecto 1.
         metodo (int, optional): 1=Jacobi, 2=Gauss-Seidel. Si es None y verbose=True, se solicita al usuario.
         omega (float, optional): Factor de relajación para Gauss-Seidel. Por defecto 1.
+        X0 (list[float], optional): Vector inicial. Si es None, se inicializa con ceros. Por defecto None.
         verbose (bool, optional): Si True, imprime resultados y permite input del usuario. Por defecto True.
     
     Returns:
@@ -233,10 +236,6 @@ def resolverJG(A, B, tolerancia=None, tipo_error=1, metodo=None, omega=1, verbos
         n = len(A)
         return [0]*n, None, 0, False
 
-    n = len(A)
-    Xn = [0] * n
-    Xv = [0] * n
-
     if metodo is None:
         if not verbose:
             raise ValueError("Debe especificar el método cuando verbose=False")
@@ -252,9 +251,9 @@ def resolverJG(A, B, tolerancia=None, tipo_error=1, metodo=None, omega=1, verbos
         tolerancia = float(input("Ingrese la tolerancia: "))
     
     if metodo == 1:
-        return jacobi(A, B, Xn, Xv, tolerancia, tipo_error, verbose)
+        return jacobi(A, B, tolerancia, tipo_error, X0, verbose)
     elif metodo == 2:
-        return gauss_seidel(A, B, Xn, Xv, tolerancia, omega, tipo_error, verbose)
+        return gauss_seidel(A, B, tolerancia, omega, tipo_error, X0, verbose)
     else:
         raise ValueError("Método inválido. Use 1 para Jacobi o 2 para Gauss-Seidel")
 
